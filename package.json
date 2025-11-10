@@ -1,0 +1,8 @@
+{
+    "name": "all-anime-quiz",
+    "version": "1.0.0",
+    "dependencies": {
+        "@supabase/supabase-js": "^2.0.0",
+        "nanoid": "^5.1.6"
+    }
+}

@@ -1,0 +1,8 @@
+[build]
+  publish = "."   # static files are in repo root (adjust if different)
+
+[[redirects]]
+  from = "/share/:token"
+  to = "/.netlify/functions/share?token=:token"
+  status = 200
+  force = false

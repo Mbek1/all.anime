@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>All.Anime — Quiz Hub</title>
+  <meta property="og:title" content="All.Anime — Quiz Hub">
+  <meta property="og:description" content="Pick a genre & difficulty, take the quiz, then share your results with friends!">
+  <meta property="og:image" content="og_shonen.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root{ --brand:#ff6f61; --bg:#f7f8fb; --card:#fff; --maxw:900px; }
+    body{font-family:Arial, sans-serif; background:var(--bg); margin:0; color:#111;}
+    .wrap{max-width:var(--maxw); margin:28px auto; padding:20px;}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    header h1{margin:0;color:var(--brand);font-size:20px}
+    .card{background:var(--card); border-radius:12px; padding:18px; box-shadow:0 6px 22px rgba(15,23,42,0.06);}
+    .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+    select, button{padding:10px 12px;border-radius:8px;border:1px solid #e6e9ee;font-size:15px}
+    button.primary{background:var(--brand); color:white; border:none}
+    .share-row{display:flex;gap:8px;flex-wrap:wrap}
+    .quiz-area{margin-top:18px}
+    .q-title{font-weight:700;margin-bottom:12px;font-size:18px}
+    .options{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+    .options button{width:100%;text-align:left;background:#eef4ff;border:1px solid transparent}
+    .options button.correct{background:#d7f6e8;border-color:#9ce0b7}
+    .options button.wrong{background:#ffdede;border-color:#ffb5b5}
+    .meta-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:12px}
+    .result{font-weight:700;font-size:18px;margin-top:12px;text-align:center}
+    .explain{margin-top:8px;padding:12px;background:#fbfbfb;border-radius:8px;border:1px dashed #e2e2e2}
+    .small{font-size:13px;color:#666}
+    footer{margin-top:20px;text-align:center;color:#666;font-size:13px}
+    @media(min-width:720px){ .controls{flex-wrap:nowrap} .options button{font-size:16px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
+      <h1>All.Anime — Quiz Hub</h1>
+    </header>
+
+    <div class="card" id="setupCard">
+      <div class="controls">
+        <label>
+          Genre
+          <select id="genreSelect" aria-label="Genre select">
+            <option value="Shonen">Shonen</option>
+            <option value="Shojo">Shojo</option>
+            <option value="Isekai">Isekai</option>
+            <option value="Mecha">Mecha</option>
+            <option value="Slice of Life">Slice of Life</option>
+            <option value="Sports">Sports</option>
+            <option value="Classic">Classic</option>
+          </select>
+        </label>
+
+        <label>
+          Difficulty
+          <select id="diffSelect" aria-label="Difficulty select">
+            <option value="easy">Easy</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+
+        <button id="startBtn" class="primary">Start Quiz</button>
+
+        <div style="flex:1"></div>
+
+        <div class="share-row small">
+          <button id="copyLinkBtn">Copy link</button>
+          <button id="fbShareBtn">Share on Facebook</button>
+          <button id="twShareBtn">Share on Twitter</button>
+        </div>
+      </div>
+
+      <p class="small" style="margin-top:12px">Tip: copy the link and share — people opening it will land on the same genre & difficulty.</p>
+    </div>
+
+    <div class="card quiz-area" id="quizCard" style="display:none">
+      <div id="quizHeader" style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small" id="quizMeta">Genre • Difficulty</div>
+          <div style="margin-top:6px;font-weight:700" id="quizTitle">Quiz</div>
+        </div>
+        <div class="small">Question <span id="qIndex">1</span>/<span id="qTotal">1</span></div>
+      </div>
+
+      <div id="quizBody" style="margin-top:12px">
+        <div class="q-title" id="questionText">Question text</div>
+        <ul class="options" id="optionsList"></ul>
+
+        <div class="meta-row">
+          <div class="small" id="progressText"></div>
+          <div>
+            <button id="prevBtn" style="display:none">Previous</button>
+            <button id="nextBtn" style="display:none" class="primary">Next</button>
+          </div>
+        </div>
+
+        <div id="explainBox" class="explain" style="display:none"></div>
+      </div>
+
+      <div id="resultBox" style="display:none">
+        <div class="result" id="scoreText">You scored 0/0</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
+          <button id="restartBtn">Try again</button>
+          <button id="shareResultBtn" class="primary">Share result</button>
+        </div>
+        <p class="small" style="margin-top:10px;text-align:center">Results use the same share link — copy it to share the exact quiz setup.</p>
+        <div style="margin-top:12px;text-align:center">
+          <a id="shareLink" href="#" style="color:var(--brand);text-decoration:none;word-break:break-all"></a>
+        </div>
+      </div>
+    </div>
+
+    <footer> • Made for All.Anime </footer>
+  </div>
+
+<script>
+/* ========= Environment Config ========= */
+// Get the proper site URL - use netlify injected env var if available, otherwise window.location
+const SITE_URL = window.__netlify__ ? (window.__netlify__.env && window.__netlify__.env.SITE_URL) : window.location.origin;
+
+/* ========= Data sets (Shonen, Shojo, Isekai, Mecha, Slice of Life, Sports, Classic) ========= */
+const QUIZ_DB = {
+  "Shonen": {
+    easy: [
+      {
+        "question": "Who is the main character of 'Naruto'?",
+        "options": [
+          "Naruto Uzumaki",
+          "Sasuke Uchiha",
+          "Sakura Haruno",
+          "Kakashi Hatake"
+        ],
+        "answer": "Naruto Uzumaki"
+      },
+      {
+        "question": "Who becomes the King of Pirates in 'One Piece'?",
+        "options": [
+          "Luffy",
+          "Zoro",
+          "Sanji",
+          "Nami"
+        ],
+        "answer": "Luffy"
+      },
+      {
+        "question": "In 'Dragon Ball Z', who first becomes a Super Saiyan?",
+        "options": [
+          "Goku",
+          "Vegeta",
+          "Gohan",
+          "Trunks"
+        ],
+        "answer": "Goku"
+      },
+      {
+        "question": "Which anime features a notebook that kills people?",
+        "options": [
+          "Death Note",
+          "Bleach",
+          "Naruto",
+          "One Piece"
+        ],
+        "answer": "Death Note"
+      },
+      {
+        "question": "What is Ichigo\u2019s weapon in 'Bleach'?",
+        "options": [
+          "Zanpakuto",
+          "Katana",
+          "Scythe",
+          "Kunai"
+        ],
+        "answer": "Zanpakuto"
+      }
+    ],
+    normal: [
+      {
+        "question": "What is Naruto\u2019s signature jutsu?",
+        "options": [
+          "Rasengan",
+          "Chidori",
+          "Shadow Clone",
+          "Fireball"
+        ],
+        "answer": "Rasengan"
+      },
+      {
+        "question": "Who trains Goku in early Dragon Ball?",
+        "options": [
+          "Master Roshi",
+          "Piccolo",
+          "Kami",
+          "King Kai"
+        ],
+        "answer": "Master Roshi"
+      },
+      {
+        "question": "Who is the captain of the Straw Hat Pirates?",
+        "options": [
+          "Luffy",
+          "Zoro",
+          "Nami",
+          "Sanji"
+        ],
+        "answer": "Luffy"
+      },
+      {
+        "question": "Who is Ichigo\u2019s Zanpakuto spirit?",
+        "options": [
+          "Zangetsu",
+          "Hollow",
+          "Byakuya",
+          "Aizen"
+        ],
+        "answer": "Zangetsu"
+      },
+      {
+        "question": "Who mentors Deku in 'My Hero Academia'?",
+        "options": [
+          "All Might",
+          "Endeavor",
+          "Aizawa",
+          "Gran Torino"
+        ],
+        "answer": "All Might"
+      },
+      {
+        "question": "What is the real name of Kira in Death Note?",
+        "options": [
+          "Light Yagami",
+          "L Lawliet",
+          "Ryuk",
+          "Near"
+        ],
+        "answer": "Light Yagami"
+      },
+      {
+        "question": "Which village is Naruto from?",
+        "options": [
+          "Konoha",
+          "Sand Village",
+          "Mist Village",
+          "Cloud Village"
+        ],
+        "answer": "Konoha"
+      },
+      {
+        "question": "Which Shonen Jump manga started first?",
+        "options": [
+          "Dragon Ball",
+          "Naruto",
+          "Bleach",
+          "One Piece"
+        ],
+        "answer": "Dragon Ball"
+      },
+      {
+        "question": "What fruit did Luffy eat?",
+        "options": [
+          "Gum-Gum Fruit",
+          "Flame-Flame Fruit",
+          "Dark-Dark Fruit",
+          "Dragon Fruit"
+        ],
+        "answer": "Gum-Gum Fruit"
+      },
+      {
+        "question": "Who transforms into a Super Saiyan God?",
+        "options": [
+          "Goku",
+          "Vegeta",
+          "Trunks",
+          "Gohan"
+        ],
+        "answer": "Goku"
+      }
+    ],
+    hard: [
+      {
+        "question": "What does 'Bankai' mean in Bleach?",
+        "options": [
+          "Final Release",
+          "Spirit Form",
+          "Power Boost",
+          "Soul Link"
+        ],
+        "answer": "Final Release"
+      },
+      {
+        "question": "What is the ultimate goal of Luffy?",
+        "options": [
+          "Become Pirate King",
+          "Find All Treasure",
+          "Defeat Shanks",
+          "Join Marines"
+        ],
+        "answer": "Become Pirate King"
+      },
+      {
+        "question": "Who is the first villain defeated by Naruto?",
+        "options": [
+          "Zabuza",
+          "Haku",
+          "Orochimaru",
+          "Kakuzu"
+        ],
+        "answer": "Zabuza"
+      },
+      {
+        "question": "What is Goku's father\u2019s name?",
+        "options": [
+          "Bardock",
+          "Raditz",
+          "Vegeta",
+          "Nappa"
+        ],
+        "answer": "Bardock"
+      },
+      {
+        "question": "Who created Death Note?",
+        "options": [
+          "Tsugumi Ohba",
+          "Masashi Kishimoto",
+          "Eiichiro Oda",
+          "Tite Kubo"
+        ],
+        "answer": "Tsugumi Ohba"
+      },
+      {
+        "question": "Which technique splits the user into multiple copies?",
+        "options": [
+          "Shadow Clone",
+          "Rasengan",
+          "Chidori",
+          "Kamehameha"
+        ],
+        "answer": "Shadow Clone"
+      },
+      {
+        "question": "Who killed Rukia\u2019s sister in Bleach?",
+        "options": [
+          "Aizen",
+          "Byakuya",
+          "Hollow",
+          "Ichigo"
+        ],
+        "answer": "Aizen"
+      },
+      {
+        "question": "Who taught Gohan to control his power?",
+        "options": [
+          "Piccolo",
+          "Goku",
+          "Krillin",
+          "Master Roshi"
+        ],
+        "answer": "Piccolo"
+      },
+      {
+        "question": "Which arc introduces the Espada?",
+        "options": [
+          "Hueco Mundo Arc",
+          "Chunin Exam Arc",
+          "Saiyan Saga",
+          "Marineford"
+        ],
+        "answer": "Hueco Mundo Arc"
+      },
+      {
+        "question": "Who sacrifices himself to save comrades in Naruto?",
+        "options": [
+          "Neji",
+          "Rock Lee",
+          "Shikamaru",
+          "Gaara"
+        ],
+        "answer": "Neji"
+      },
+      {
+        "question": "What is the name of the Sword of Tensa Zangetsu?",
+        "options": [
+          "Zangetsu",
+          "Ryujin Jakka",
+          "Kubikiribocho",
+          "Samehada"
+        ],
+        "answer": "Zangetsu"
+      },
+      {
+        "question": "Which Dragon Ball villain wishes for immortality?",
+        "options": [
+          "Cell",
+          "Frieza",
+          "Majin Buu",
+          "Broly"
+        ],
+        "answer": "Cell"
+      },
+      {
+        "question": "Who is the original wielder of Excalibur in Bleach?",
+        "options": [
+          "Ichigo",
+          "Rukia",
+          "Urahara",
+          "Renji"
+        ],
+        "answer": "Urahara"
+      },
+      {
+        "question": "Which technique did Naruto learn from Jiraiya?",
+        "options": [
+          "Rasengan",
+          "Chidori",
+          "Amaterasu",
+          "Kage Bunshin"
+        ],
+        "answer": "Rasengan"
+      },
+      {
+        "question": "What is the name of the first Kage Naruto fights?",
+        "options": [
+          "Gaara",
+          "Hiruzen",
+          "Tsunade",
+          "Orochimaru"
+        ],
+        "answer": "Gaara"
+      }
+    ]
+  },
+
+  "Shojo": {
+     easy: [
+    { question: "Who is the main character of 'Fruits Basket'?", options: ["Tohru Honda", "Kyo Sohma", "Yuki Sohma", "Shigure Sohma"], answer: "Tohru Honda" },
+    { question: "In 'Ouran High School Host Club', who is the female protagonist?", options: ["Haruhi Fujioka", "Tamaki Suoh", "Mitsukuni Haninozuka", "Kyoya Ootori"], answer: "Haruhi Fujioka" },
+    { question: "What is the genre focus of 'Sailor Moon'?", options: ["Magical Girl", "Shonen Action", "Mecha", "Sports"], answer: "Magical Girl" },
+    { question: "Who is the love interest of Nanami in 'Kimi ni Todoke'?", options: ["Shouta Kazehaya", "Ryuu Sanada", "Kazuya Aoi", "Haru Yoshida"], answer: "Shouta Kazehaya" },
+    { question: "Which shojo anime features a cursed family turning into animals?", options: ["Fruits Basket", "Skip Beat!", "Nana", "Lovely Complex"], answer: "Fruits Basket" }
+  ],
+  normal: [
+    { question: "Who is Kyoya Ootori in 'Ouran High School Host Club'?", options: ["Vice-President of Host Club", "President of Host Club", "Student Council President", "Haruhi's Friend"], answer: "Vice-President of Host Club" },
+    { question: "What is the main theme of 'Skip Beat!'?", options: ["Revenge and Acting", "Magical Powers", "Sports Competition", "Time Travel"], answer: "Revenge and Acting" },
+    { question: "Who is the lead singer in 'Nana'?", options: ["Nana Osaki", "Nana Komatsu", "Ren Honjo", "Takumi Ichinose"], answer: "Nana Osaki" },
+    { question: "In 'Lovely Complex', who is the taller protagonist?", options: ["Risa Koizumi", "Atsushi Otani", "Nanami", "Haru"], answer: "Risa Koizumi" },
+    { question: "Which shojo series involves a magical sailor team?", options: ["Sailor Moon", "Cardcaptor Sakura", "Fruits Basket", "Skip Beat!"], answer: "Sailor Moon" },
+    { question: "Who is the male lead in 'Kimi ni Todoke'?", options: ["Shouta Kazehaya", "Ryuu Sanada", "Haru Yoshida", "Tamaki Suoh"], answer: "Shouta Kazehaya" },
+    { question: "What is the setting of 'Ouran High School Host Club'?", options: ["Elite Academy", "Middle School", "Sports Club", "Magical Realm"], answer: "Elite Academy" },
+    { question: "Which character struggles with her singing career in 'Skip Beat!'?", options: ["Kyoko Mogami", "Tohru Honda", "Haruhi Fujioka", "Risa Koizumi"], answer: "Kyoko Mogami" },
+    { question: "Who transforms into animals in 'Fruits Basket'?", options: ["Sohma Family", "Honda Family", "Skip Beat Cast", "Ouran Students"], answer: "Sohma Family" },
+    { question: "What is Nana Komatsu’s nickname in 'Nana'?", options: ["Hachi", "Nani", "Nako", "Koma"], answer: "Hachi" }
+  ],
+  hard: [
+    { question: "Who curses the Sohma family in 'Fruits Basket'?", options: ["God of the Zodiac", "Master of Time", "Spirit of the Moon", "Dragon King"], answer: "God of the Zodiac" },
+    { question: "What is the main conflict for Kyoko Mogami in 'Skip Beat!'?", options: ["Revenge against ex-crush", "Saving her village", "Training as a mage", "Sports championship"], answer: "Revenge against ex-crush" },
+    { question: "Who is Takumi Ichinose in 'Nana'?", options: ["Leader of Trapnest", "Nana’s Brother", "Kyoya’s Friend", "Shouta’s Rival"], answer: "Leader of Trapnest" },
+    { question: "Which shojo protagonist dresses as a boy to attend school?", options: ["Haruhi Fujioka", "Tohru Honda", "Kyoko Mogami", "Risa Koizumi"], answer: "Haruhi Fujioka" },
+    { question: "In 'Lovely Complex', what is the height difference problem?", options: ["Girl taller than boy", "Boy taller than girl", "Same height", "Both short"], answer: "Girl taller than boy" },
+    { question: "Who is Shigure Sohma in 'Fruits Basket'?", options: ["Cousin and family member", "Tohru’s Friend", "School Teacher", "Anime Villain"], answer: "Cousin and family member" },
+    { question: "What band is Nana Osaki part of?", options: ["Black Stones", "Trapnest", "Starry Sky", "Blue Hearts"], answer: "Black Stones" },
+    { question: "What is Haruhi’s role in the Host Club?", options: ["Scholarship Student", "President", "Musician", "Chef"], answer: "Scholarship Student" },
+    { question: "Which character grows emotionally from being timid to confident in 'Fruits Basket'?", options: ["Tohru Honda", "Kyoko Mogami", "Haruhi Fujioka", "Risa Koizumi"], answer: "Tohru Honda" },
+    { question: "What is the secret behind the Sohma family curse?", options: ["Zodiac Spirits possession", "Magic spells", "Time Travel", "Alien Experiment"], answer: "Zodiac Spirits possession" },
+    { question: "Who mentors Kyoko Mogami in acting?", options: ["Ren Tsuruga", "Shouta Kazehaya", "Tamaki Suoh", "Ryuu Sanada"], answer: "Ren Tsuruga" },
+    { question: "Who is Ren Honjo in 'Nana'?", options: ["Guitarist and love interest", "Band manager", "Singer", "School friend"], answer: "Guitarist and love interest" },
+    { question: "Which shojo series features a magical book of Clow Cards?", options: ["Cardcaptor Sakura", "Fruits Basket", "Skip Beat!", "Ouran High School Host Club"], answer: "Cardcaptor Sakura" },
+    { question: "What is Kyoya Ootori’s specialty in the Host Club?", options: ["Management and Strategy", "Cooking", "Martial Arts", "Magic"], answer: "Management and Strategy" },
+    { question: "Who develops a romantic relationship with Kyoko Mogami?", options: ["Ren Tsuruga", "Shigure Sohma", "Shouta Kazehaya", "Tamaki Suoh"], answer: "Ren Tsuruga" }
+  ]
+  },
+
+  "Isekai": {
+  easy: [
+    { question: "Who is transported to a fantasy world in 'Re:Zero'?", options: ["Subaru Natsuki", "Emilia", "Rem", "Ram"], answer: "Subaru Natsuki" },
+    { question: "In 'Sword Art Online', what is the main character trapped in?", options: ["VR MMORPG", "School", "Space Station", "Haunted House"], answer: "VR MMORPG" },
+    { question: "Who is the main female protagonist in 'Konosuba'?", options: ["Aqua", "Megumin", "Darkness", "Kazuma"], answer: "Aqua" },
+    { question: "Which Isekai anime features a hero reincarnated as a slime?", options: ["That Time I Got Reincarnated as a Slime", "No Game No Life", "Re:Zero", "Konosuba"], answer: "That Time I Got Reincarnated as a Slime" },
+    { question: "What is the profession of Kazuma in 'Konosuba' before dying?", options: ["Gamer", "Student", "Office Worker", "Soldier"], answer: "Gamer" }
+  ],
+  normal: [
+    { question: "Who is the villain threatening Lugnica in 'Re:Zero'?", options: ["Betelgeuse", "Subaru", "Ainz", "Rimuru"], answer: "Betelgeuse" },
+    { question: "What is the name of the VR game in 'Sword Art Online'?", options: ["Aincrad", "Alfheim Online", "Gun Gale Online", "Underworld"], answer: "Aincrad" },
+    { question: "What is Megumin’s signature magic in 'Konosuba'?", options: ["Explosion", "Water", "Ice", "Wind"], answer: "Explosion" },
+    { question: "Who is the Demon Lord in 'Konosuba'?", options: ["Vanir", "Kazuma", "Rimuru", "Subaru"], answer: "Vanir" },
+    { question: "What is Rimuru Tempest's original human name?", options: ["Satoru Mikami", "Subaru Natsuki", "Kazuma Satou", "Naofumi Iwatani"], answer: "Satoru Mikami" },
+    { question: "Which Isekai anime features a young boy transported to another world after being hit by a truck?", options: ["Konosuba", "Re:Zero", "That Time I Got Reincarnated as a Slime", "Sword Art Online"], answer: "Konosuba" },
+    { question: "What is the class of Kazuma in 'Konosuba' after reincarnation?", options: ["Adventurer", "Mage", "Knight", "Priest"], answer: "Adventurer" },
+    { question: "Who helps Subaru when he first arrives in Lugnica?", options: ["Emilia", "Rem", "Aqua", "Megumin"], answer: "Emilia" },
+    { question: "What is the name of the guild in 'Konosuba'?", options: ["Axis Church", "Slime Guild", "Knights of Aincrad", "Beelzebub Clan"], answer: "Axis Church" },
+    { question: "Which Isekai anime protagonist is known for summoning monsters?", options: ["Rimuru Tempest", "Subaru Natsuki", "Kazuma Satou", "Shiro"], answer: "Rimuru Tempest" }
+  ],
+  hard: [
+    { question: "Who is Subaru’s enemy in the Royal Selection in 'Re:Zero'?", options: ["Crusch Karsten", "Emilia", "Rem", "Beatrice"], answer: "Crusch Karsten" },
+    { question: "What floor does Kirito reach in Aincrad?", options: ["100th Floor", "50th Floor", "1st Floor", "75th Floor"], answer: "100th Floor" },
+    { question: "Which demon beast does Rimuru defeat to become powerful?", options: ["Veldora", "Ainz", "Vanir", "Betelgeuse"], answer: "Veldora" },
+    { question: "Which party member is a crusader in 'Konosuba'?", options: ["Darkness", "Megumin", "Aqua", "Kazuma"], answer: "Darkness" },
+    { question: "Who is the archbishop of witch cult in 'Re:Zero'?", options: ["Betelgeuse Romanee-Conti", "Garfield", "Ragnar", "Felt"], answer: "Betelgeuse Romanee-Conti" },
+    { question: "What is the name of the first dungeon Kazuma and party explore?", options: ["Destroyer Dungeon", "Slime Cave", "Royal Tomb", "Dragon Lair"], answer: "Destroyer Dungeon" },
+    { question: "Which Isekai character has the ability to absorb skills and powers?", options: ["Rimuru Tempest", "Kirito", "Subaru", "Kazuma"], answer: "Rimuru Tempest" },
+    { question: "What is Subaru’s unique ability in 'Re:Zero'?", options: ["Return by Death", "Explosion Magic", "Sword Mastery", "Time Travel"], answer: "Return by Death" },
+    { question: "Who is the archmage in 'Konosuba'?", options: ["Megumin", "Darkness", "Aqua", "Kazuma"], answer: "Megumin" },
+    { question: "Who is the demon lord of the Jura Tempest Federation?", options: ["Rimuru Tempest", "Vanir", "Betelgeuse", "Ainz Ooal Gown"], answer: "Rimuru Tempest" },
+    { question: "What is the nickname of Rem in 'Re:Zero'?", options: ["Blue Oni", "Red Oni", "White Witch", "Black Knight"], answer: "Blue Oni" },
+    { question: "Which Isekai character becomes a Dragon Sage?", options: ["Rimuru Tempest", "Subaru Natsuki", "Kazuma Satou", "Kirito"], answer: "Rimuru Tempest" },
+    { question: "What is the final boss in 'Sword Art Online' Aincrad?", options: ["Heathcliff", "Kayaba Akihiko", "Veldora", "Vanir"], answer: "Heathcliff" },
+    { question: "Which guild does Rimuru lead?", options: ["Jura Tempest Federation", "Axis Church", "Trapnest", "Slime Clan"], answer: "Jura Tempest Federation" },
+    { question: "Who is the main mage companion of Kazuma in 'Konosuba'?", options: ["Megumin", "Aqua", "Darkness", "Emilia"], answer: "Megumin" }
+  ]
+  },
+
+  "Mecha": {
+    easy: [
+    { question: "Who pilots the EVA Unit-01 in 'Neon Genesis Evangelion'?", options: ["Shinji Ikari", "Asuka Langley", "Rei Ayanami", "Kaworu Nagisa"], answer: "Shinji Ikari" },
+    { question: "Which mecha anime features giant transforming robots called Gundams?", options: ["Mobile Suit Gundam", "Neon Genesis Evangelion", "Code Geass", "Macross"], answer: "Mobile Suit Gundam" },
+    { question: "Who is the main character in 'Code Geass'?", options: ["Lelouch Lamperouge", "Suzaku Kururugi", "C.C.", "Kallen Stadtfeld"], answer: "Lelouch Lamperouge" },
+    { question: "Which anime features Valkyrie transforming fighter jets?", options: ["Macross", "Gundam Wing", "Neon Genesis Evangelion", "Code Geass"], answer: "Macross" },
+    { question: "In 'Gurren Lagann', who leads Team Dai-Gurren?", options: ["Simon", "Kamina", "Yoko", "Viral"], answer: "Kamina" }
+  ],
+  normal: [
+    { question: "What organization opposes the main characters in 'Code Geass'?", options: ["Holy Britannian Empire", "NERV", "Zeon", "Galactic Empire"], answer: "Holy Britannian Empire" },
+    { question: "Who is the mysterious girl inside EVA Unit-00?", options: ["Rei Ayanami", "Asuka Langley", "Mari", "Ritsuko Akagi"], answer: "Rei Ayanami" },
+    { question: "What is the main energy source for EVA units?", options: ["S² Engine", "Nuclear Reactor", "Solar Power", "Fusion Core"], answer: "S² Engine" },
+    { question: "Who pilots the RX-78-2 Gundam?", options: ["Amuro Ray", "Char Aznable", "Heero Yuy", "Kira Yamato"], answer: "Amuro Ray" },
+    { question: "In 'Macross', what is the main love interest of Hikaru Ichijo?", options: ["Minmay", "Misa", "Sheryl", "Lacus"], answer: "Minmay" },
+    { question: "Which mecha anime features Spiral Power?", options: ["Gurren Lagann", "Evangelion", "Gundam Wing", "Code Geass"], answer: "Gurren Lagann" },
+    { question: "Who pilots EVA Unit-02?", options: ["Asuka Langley Soryu", "Rei Ayanami", "Mari", "Shinji Ikari"], answer: "Asuka Langley Soryu" },
+    { question: "What is the goal of Team Dai-Gurren?", options: ["Reach the surface", "Defeat Britannia", "Protect Earth from Angels", "Stop Geass"], answer: "Reach the surface" },
+    { question: "Who is Char Aznable?", options: ["Red Comet", "Pilot of EVA", "Knightmare Pilot", "Commander of Macross"], answer: "Red Comet" },
+    { question: "Which Gundam series involves the conflict between Earth and space colonies?", options: ["Mobile Suit Gundam", "Gurren Lagann", "Macross", "Code Geass"], answer: "Mobile Suit Gundam" }
+  ],
+  hard: [
+    { question: "What is the true nature of EVA units?", options: ["Biological beings", "Mechanical robots", "Alien artifacts", "Magical constructs"], answer: "Biological beings" },
+    { question: "Who sacrifices himself to help Simon in 'Gurren Lagann'?", options: ["Kamina", "Viral", "Rossiu", "Boota"], answer: "Kamina" },
+    { question: "What is the name of the superweapon in 'Code Geass'?", options: ["F.L.E.I.J.A.", "Geass Bomb", "EVA Unit", "Gunbuster"], answer: "F.L.E.I.J.A." },
+    { question: "Who is the main antagonist in 'Evangelion'?", options: ["Gendo Ikari", "Kaworu Nagisa", "SEELE", "Asuka Langley"], answer: "Gendo Ikari" },
+    { question: "Which mecha anime features the concept of Beastmen and Spiral Nemesis?", options: ["Gurren Lagann", "Gundam Wing", "Code Geass", "Evangelion"], answer: "Gurren Lagann" },
+    { question: "What is the secret behind Rei Ayanami’s existence?", options: ["Clone of Yui Ikari", "Alien hybrid", "Time traveler", "Magical construct"], answer: "Clone of Yui Ikari" },
+    { question: "Who leads the Black Knights in 'Code Geass'?", options: ["Lelouch Lamperouge", "Suzaku Kururugi", "Kallen Stadtfeld", "C.C."], answer: "Lelouch Lamperouge" },
+    { question: "What is the final form of Gurren Lagann?", options: ["Tengen Toppa Gurren Lagann", "Super EVA", "Perfect Gundam", "Macross Delta"], answer: "Tengen Toppa Gurren Lagann" },
+    { question: "Which Gundam pilot has a rivalry with Amuro Ray?", options: ["Char Aznable", "Heero Yuy", "Kira Yamato", "Setsuna F. Seiei"], answer: "Char Aznable" },
+    { question: "What is the main objective of NERV in Evangelion?", options: ["Defeat Angels", "Conquer space", "Destroy Britannia", "Collect Geass"], answer: "Defeat Angels" },
+    { question: "Who is the pilot of the Strike Gundam in 'Gundam SEED'?", options: ["Kira Yamato", "Athrun Zala", "Lacus Clyne", "Cagalli Yula"], answer: "Kira Yamato" },
+    { question: "Which mecha anime involves piloting mechs with psychic interfaces?", options: ["Evangelion", "Gurren Lagann", "Macross", "Gundam Wing"], answer: "Evangelion" },
+    { question: "Who is Kallen Stadtfeld in 'Code Geass'?", options: ["Knightmare Frame Pilot", "Student Council President", "Aqua's Rival", "Angel"], answer: "Knightmare Frame Pilot" },
+    { question: "Which anime features the concept of the Anti-Spirals?", options: ["Gurren Lagann", "Evangelion", "Macross", "Gundam SEED"], answer: "Gurren Lagann" },
+    { question: "What is the role of C.C. in 'Code Geass'?", options: ["Granting Geass powers", "Knightmare Pilot", "Angel", "Scientist"], answer: "Granting Geass powers" }
+  ]
+  },
+
+  "Slice of Life": {
+     easy: [
+    { question: "Who is the main character of 'Clannad'?", options: ["Tomoya Okazaki", "Nagisa Furukawa", "Kyou Fujibayashi", "Sunohara Youhei"], answer: "Tomoya Okazaki" },
+    { question: "Which anime focuses on high school girls running a tea club?", options: ["K-On!", "Lucky Star", "Toradora!", "Fruits Basket"], answer: "K-On!" },
+    { question: "Who is Taiga Aisaka’s love interest in 'Toradora!'?", options: ["Ryuuji Takasu", "Minori Kushieda", "Kitamura", "Yusaku Kitamura"], answer: "Ryuuji Takasu" },
+    { question: "Which anime is about everyday life in a high school club?", options: ["K-On!", "Gurren Lagann", "Evangelion", "Code Geass"], answer: "K-On!" },
+    { question: "Who is the main protagonist in 'March Comes in Like a Lion'?", options: ["Rei Kiriyama", "Shouya Ishida", "Tomoya Okazaki", "Ryuuji Takasu"], answer: "Rei Kiriyama" }
+  ],
+  normal: [
+    { question: "Which slice-of-life anime features four girls making music together?", options: ["K-On!", "Lucky Star", "Clannad", "Toradora!"], answer: "K-On!" },
+    { question: "Who is the piano prodigy in 'Your Lie in April'?", options: ["Kousei Arima", "Tomoya Okazaki", "Ryuuji Takasu", "Rei Kiriyama"], answer: "Kousei Arima" },
+    { question: "Which anime deals with bullying and redemption?", options: ["A Silent Voice", "Clannad", "K-On!", "Lucky Star"], answer: "A Silent Voice" },
+    { question: "Who is Minori Kushieda in 'Toradora!'?", options: ["Ryuuji’s friend", "Taiga’s sister", "Club president", "K-On! member"], answer: "Ryuuji’s friend" },
+    { question: "Which anime depicts a slice of life around shogi?", options: ["March Comes in Like a Lion", "Toradora!", "Clannad", "K-On!"], answer: "March Comes in Like a Lion" },
+    { question: "Who is Yui Hirasawa in 'K-On!'?", options: ["Guitarist and singer", "Bassist", "Keyboardist", "Drummer"], answer: "Guitarist and singer" },
+    { question: "Which anime follows the life of a girl named Konata Izumi?", options: ["Lucky Star", "K-On!", "Clannad", "Toradora!"], answer: "Lucky Star" },
+    { question: "Who helps Kousei Arima rediscover music?", options: ["Kaori Miyazono", "Tomoya Okazaki", "Nagisa Furukawa", "Taiga Aisaka"], answer: "Kaori Miyazono" },
+    { question: "Which anime involves friendship and daily life in a high school?", options: ["Lucky Star", "Evangelion", "Gundam Wing", "Code Geass"], answer: "Lucky Star" },
+    { question: "Who is Shouko Nishimiya in 'A Silent Voice'?", options: ["Deaf girl bullied by Shoya", "Guitarist in K-On!", "Club member", "Taiga’s friend"], answer: "Deaf girl bullied by Shoya" }
+  ],
+  hard: [
+    { question: "What mental condition does Shouya Ishida struggle with in 'A Silent Voice'?", options: ["Guilt and social anxiety", "Depression", "Amnesia", "Obsessive-compulsive disorder"], answer: "Guilt and social anxiety" },
+    { question: "What is the nickname of Yui Hirasawa in 'K-On!'?", options: ["Yui-chan", "Hira-chan", "Yui-san", "Ui"], answer: "Yui-chan" },
+    { question: "Which anime explores family relationships and illness?", options: ["Clannad: After Story", "Toradora!", "Lucky Star", "K-On!"], answer: "Clannad: After Story" },
+    { question: "Who is Akari Kawamoto in 'March Comes in Like a Lion'?", options: ["One of the Kawamoto sisters", "Ryuuji’s friend", "K-On! member", "Taiga’s rival"], answer: "One of the Kawamoto sisters" },
+    { question: "Which anime features a high school student learning shogi while struggling with depression?", options: ["March Comes in Like a Lion", "A Silent Voice", "Toradora!", "K-On!"], answer: "March Comes in Like a Lion" },
+    { question: "Who is Mio Akiyama in 'K-On!'?", options: ["Bassist", "Guitarist", "Keyboardist", "Drummer"], answer: "Bassist" },
+    { question: "Which anime focuses on everyday otaku life and culture?", options: ["Lucky Star", "Clannad", "Toradora!", "March Comes in Like a Lion"], answer: "Lucky Star" },
+    { question: "Who is Ui Hirasawa in 'K-On!'?", options: ["Yui’s younger sister", "Club president", "Taiga’s friend", "Ryuuji’s cousin"], answer: "Yui’s younger sister" },
+    { question: "Which anime portrays the struggles of a single parent and children?", options: ["Clannad: After Story", "Lucky Star", "K-On!", "Toradora!"], answer: "Clannad: After Story" },
+    { question: "Who is Taichi Mashima in 'Chihayafuru'?", options: ["Karuta player and Taichi’s rival", "Shogi player", "Guitarist", "Anime villain"], answer: "Karuta player and Taichi’s rival" },
+    { question: "Which anime features Kaori Miyazono’s free-spirited violin style?", options: ["Your Lie in April", "Clannad", "K-On!", "Lucky Star"], answer: "Your Lie in April" },
+    { question: "What is the main theme of 'Toradora!'?", options: ["Romantic comedy and friendship", "Action and adventure", "Mecha battles", "Musical competition"], answer: "Romantic comedy and friendship" },
+    { question: "Which anime shows healing from bullying and personal trauma?", options: ["A Silent Voice", "Lucky Star", "K-On!", "Toradora!"], answer: "A Silent Voice" },
+    { question: "Who is the main protagonist in 'Lucky Star'?", options: ["Konata Izumi", "Yui Hirasawa", "Tomoya Okazaki", "Ryuuji Takasu"], answer: "Konata Izumi" },
+    { question: "Which Slice of Life anime explores the challenges of teenage romance?", options: ["Toradora!", "March Comes in Like a Lion", "K-On!", "Lucky Star"], answer: "Toradora!" }
+  ]
+  },
+
+  "Sports": {
+    easy: [
+    { question: "Who is the main character in 'Haikyuu!!'?", options: ["Shoyo Hinata", "Kageyama Tobio", "Nishinoya Yuu", "Sugawara Koshi"], answer: "Shoyo Hinata" },
+    { question: "Which sport is featured in 'Kuroko no Basket'?", options: ["Basketball", "Volleyball", "Soccer", "Baseball"], answer: "Basketball" },
+    { question: "Who is the main character of 'Yuri on Ice'?", options: ["Yuri Katsuki", "Victor Nikiforov", "Yuuri Plisetsky", "Phichit Chulanont"], answer: "Yuri Katsuki" },
+    { question: "Which sport does 'Free!' anime focus on?", options: ["Swimming", "Basketball", "Soccer", "Track"], answer: "Swimming" },
+    { question: "Who is the main protagonist of 'Hajime no Ippo'?", options: ["Ippo Makunouchi", "Takamura Mamoru", "Mashiba Ryo", "Ichiro Miyata"], answer: "Ippo Makunouchi" }
+  ],
+  normal: [
+    { question: "What position does Kageyama play in 'Haikyuu!!'?", options: ["Setter", "Libero", "Outside Hitter", "Middle Blocker"], answer: "Setter" },
+    { question: "Who is the Phantom Sixth Man in 'Kuroko no Basket'?", options: ["Tetsuya Kuroko", "Taiga Kagami", "Seirin Captain", "Ryota Kise"], answer: "Tetsuya Kuroko" },
+    { question: "Who coaches the Seirin High basketball team?", options: ["Coach Anzai", "Coach Ukai", "Coach Takeda", "Coach Oikawa"], answer: "Coach Anzai" },
+    { question: "Which sport does 'Ace of Diamond' focus on?", options: ["Baseball", "Basketball", "Volleyball", "Soccer"], answer: "Baseball" },
+    { question: "Who is the rival pitcher in 'Hajime no Ippo'?", options: ["Ichiro Miyata", "Takamura Mamoru", "Ippo Makunouchi", "Mashiba Ryo"], answer: "Ichiro Miyata" },
+    { question: "Who is the main rival in 'Yuri on Ice'?", options: ["Yuri Plisetsky", "Victor Nikiforov", "Phichit Chulanont", "JJ"], answer: "Yuri Plisetsky" },
+    { question: "Which volleyball team is Hinata a member of?", options: ["Karasuno", "Aoba Johsai", "Nekoma", "Fukurodani"], answer: "Karasuno" },
+    { question: "Who is the ace of Seirin basketball team?", options: ["Taiga Kagami", "Tetsuya Kuroko", "Ryota Kise", "Shintaro Midorima"], answer: "Taiga Kagami" },
+    { question: "Who is Coach Ukai's grandson in 'Haikyuu!!'?", options: ["Kei Tsukishima", "Shoyo Hinata", "Kageyama Tobio", "Yamaguchi Tadashi"], answer: "Kei Tsukishima" },
+    { question: "Which anime features ice figure skating competitions?", options: ["Yuri on Ice", "Free!", "Haikyuu!!", "Kuroko no Basket"], answer: "Yuri on Ice" }
+  ],
+  hard: [
+    { question: "Who is the libero for Karasuno in 'Haikyuu!!'?", options: ["Yu Nishinoya", "Shoyo Hinata", "Tobio Kageyama", "Kei Tsukishima"], answer: "Yu Nishinoya" },
+    { question: "What is the name of the professional baseball league in 'Ace of Diamond'?", options: ["Japanese Baseball League", "Major League Japan", "Tokyo Baseball Series", "Diamond League"], answer: "Japanese Baseball League" },
+    { question: "Who is the captain of Nekoma volleyball team?", options: ["Kenma Kozume", "Tetsuro Kuroo", "Lev Haiba", "Shoyo Hinata"], answer: "Tetsuro Kuroo" },
+    { question: "What is Victor Nikiforov’s home country?", options: ["Russia", "Japan", "USA", "Canada"], answer: "Russia" },
+    { question: "Who trains Ippo in boxing?", options: ["Mamoru Takamura", "Ichiro Miyata", "Ryo Mashiba", "Coach Kamogawa"], answer: "Mamoru Takamura" },
+    { question: "Which Seirin player is known for perfect passes?", options: ["Tetsuya Kuroko", "Taiga Kagami", "Ryota Kise", "Shintaro Midorima"], answer: "Tetsuya Kuroko" },
+    { question: "What move does Ippo use as his signature in boxing?", options: ["Dempsey Roll", "Cross Counter", "Uppercut", "Jab"], answer: "Dempsey Roll" },
+    { question: "Who is the main coach of the Nekoma volleyball team?", options: ["Kenma Kozume", "Tetsuro Kuroo", "Lev Haiba", "Coach Ukai"], answer: "Tetsuro Kuroo" },
+    { question: "Which 'Haikyuu!!' team is known as the 'Iron Wall'?", options: ["Nekoma", "Karasuno", "Fukurodani", "Aoba Johsai"], answer: "Nekoma" },
+    { question: "Who is the genius sniper in Seirin basketball?", options: ["Ryota Kise", "Tetsuya Kuroko", "Taiga Kagami", "Shintaro Midorima"], answer: "Shintaro Midorima" },
+    { question: "Which anime features a swimming relay competition?", options: ["Free!", "Haikyuu!!", "Kuroko no Basket", "Ace of Diamond"], answer: "Free!" },
+    { question: "What is the primary rival school of Karasuno in 'Haikyuu!!'?", options: ["Aoba Johsai", "Nekoma", "Fukurodani", "Itachiyama"], answer: "Aoba Johsai" },
+    { question: "Who is the twin brother duo in 'Yuri on Ice'?", options: ["None, trick question", "Victor and Yuri", "Phichit and JJ", "Yuri and Otabek"], answer: "None, trick question" },
+    { question: "Which basketball player is known as 'Kaijo’s Demon God'?", options: ["Eikichi Nebuya", "Taiga Kagami", "Tetsuya Kuroko", "Ryota Kise"], answer: "Eikichi Nebuya" },
+    { question: "Which anime features the concept of 'Flying Formations' in volleyball?", options: ["Haikyuu!!", "Kuroko no Basket", "Free!", "Ace of Diamond"], answer: "Haikyuu!!" }
+  ]
+  },
+
+  "Classic": {
+     easy: [
+    { question: "Who is the main character of 'Dragon Ball'?", options: ["Goku", "Vegeta", "Gohan", "Piccolo"], answer: "Goku" },
+    { question: "Which anime features a robot boy created by Dr. Tenma?", options: ["Astro Boy", "Gigantor", "Mazinger Z", "Mobile Suit Gundam"], answer: "Astro Boy" },
+    { question: "Who pilots the Shinkalion in the classic mecha series?", options: ["Hayato Hayasugi", "Simon", "Amuro Ray", "Kamina"], answer: "Hayato Hayasugi" },
+    { question: "Which anime is known for a boy with a spirit sword?", options: ["Yu Yu Hakusho", "Dragon Ball", "Sailor Moon", "One Piece"], answer: "Yu Yu Hakusho" },
+    { question: "Who is the main heroine in 'Sailor Moon'?", options: ["Usagi Tsukino", "Minako Aino", "Ami Mizuno", "Rei Hino"], answer: "Usagi Tsukino" }
+  ],
+  normal: [
+    { question: "Who is the rival of Goku in the original 'Dragon Ball' series?", options: ["Piccolo", "Vegeta", "Krillin", "Tien"], answer: "Piccolo" },
+    { question: "Which anime features a robot named Tetsujin?", options: ["Tetsujin 28-go", "Astro Boy", "Mazinger Z", "Mobile Suit Gundam"], answer: "Tetsujin 28-go" },
+    { question: "Who is the leader of the Sailor Guardians?", options: ["Sailor Moon", "Sailor Mercury", "Sailor Mars", "Sailor Jupiter"], answer: "Sailor Moon" },
+    { question: "Which anime features a demon fox sealed inside a ninja?", options: ["Naruto", "Dragon Ball", "Yu Yu Hakusho", "One Piece"], answer: "Naruto" },
+    { question: "Who is Yusuke Urameshi in 'Yu Yu Hakusho'?", options: ["Spirit Detective", "Martial Artist", "Pirate", "Mage"], answer: "Spirit Detective" },
+    { question: "Which mecha anime features Mazinger Z?", options: ["Mazinger Z", "Gundam Wing", "Evangelion", "Gurren Lagann"], answer: "Mazinger Z" },
+    { question: "Who is Astro Boy’s creator within the story?", options: ["Dr. Tenma", "Dr. Light", "Dr. Gero", "Dr. Ochanomizu"], answer: "Dr. Tenma" },
+    { question: "Which classic anime features a pirate crew searching for a treasure?", options: ["One Piece", "Dragon Ball", "Naruto", "Yu Yu Hakusho"], answer: "One Piece" },
+    { question: "Who is the main villain in the Red Ribbon Army saga in 'Dragon Ball'?", options: ["General Blue", "Piccolo", "King Piccolo", "Vegeta"], answer: "General Blue" },
+    { question: "Which anime features Sailor Moon transforming with a brooch?", options: ["Sailor Moon", "Cardcaptor Sakura", "Fruits Basket", "Magic Knight Rayearth"], answer: "Sailor Moon" }
+  ],
+  hard: [
+    { question: "What is the name of the dragon in 'Dragon Ball'?", options: ["Shenron", "Porunga", "Falkor", "Draco"], answer: "Shenron" },
+    { question: "Which anime introduced the concept of Spirit Energy for fighting?", options: ["Yu Yu Hakusho", "Dragon Ball", "Naruto", "One Piece"], answer: "Yu Yu Hakusho" },
+    { question: "Who pilots the Great Mazinger?", options: ["Koji Kabuto", "Tetsuya Tsurugi", "Amuro Ray", "Simon"], answer: "Tetsuya Tsurugi" },
+    { question: "What is the first form of Super Saiyan in 'Dragon Ball Z'?", options: ["Goku transforms against Frieza", "Vegeta transforms against Cell", "Gohan against Cell", "Trunks against Androids"], answer: "Goku transforms against Frieza" },
+    { question: "Which classic anime features pirates, ninjas, and treasures?", options: ["One Piece", "Dragon Ball", "Yu Yu Hakusho", "Naruto"], answer: "One Piece" },
+    { question: "Who is the father of Astro Boy?", options: ["Dr. Tenma", "Dr. Light", "Dr. Gero", "Dr. Ochanomizu"], answer: "Dr. Tenma" },
+    { question: "Which Sailor Guardian controls fire?", options: ["Sailor Mars", "Sailor Mercury", "Sailor Venus", "Sailor Jupiter"], answer: "Sailor Mars" },
+    { question: "Who becomes King of all Saiyans?", options: ["Vegeta", "Goku", "Broly", "Raditz"], answer: "Vegeta" },
+    { question: "What is the human alias of King Piccolo in 'Dragon Ball'?", options: ["Piccolo Daimao", "Kami", "Tambourine", "General Blue"], answer: "Piccolo Daimao" },
+    { question: "Who is the main female character in 'Magic Knight Rayearth'?", options: ["Hikaru Shidou", "Umi Ryuuzaki", "Fuu Hououji", "Sailor Moon"], answer: "Hikaru Shidou" },
+    { question: "Which anime features a flying fortress called the Red Ribbon Army Base?", options: ["Dragon Ball", "Yu Yu Hakusho", "Naruto", "One Piece"], answer: "Dragon Ball" },
+    { question: "Who teaches Goku to fly in 'Dragon Ball'?", options: ["Kami", "Master Roshi", "King Kai", "Korin"], answer: "Kami" },
+    { question: "Which classic anime features a boy and his robot fighting crime?", options: ["Astro Boy", "Tetsujin 28-go", "Mazinger Z", "Gundam Wing"], answer: "Astro Boy" },
+    { question: "Who is the creator of 'Astro Boy' in real life?", options: ["Osamu Tezuka", "Akira Toriyama", "Eiichiro Oda", "Masashi Kishimoto"], answer: "Osamu Tezuka" },
+    { question: "Which anime features a girl with the power of the Moon Kingdom?", options: ["Sailor Moon", "Cardcaptor Sakura", "Fushigi Yuugi", "Magic Knight Rayearth"], answer: "Sailor Moon" }
+  ]
+  }
+};
+
+/* ===== Utility: read/write URL params ===== */
+function getParam(name){
+  const p = new URLSearchParams(window.location.search);
+  return p.get(name);
+}
+function setParams(params){
+  const url = new URL(window.location.href);
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  history.replaceState(null, '', url.toString());
+}
+
+/* ===== UI elements ===== */
+const genreSelect = document.getElementById('genreSelect');
+const diffSelect = document.getElementById('diffSelect');
+const startBtn = document.getElementById('startBtn');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+const fbShareBtn = document.getElementById('fbShareBtn');
+const twShareBtn = document.getElementById('twShareBtn');
+
+const setupCard = document.getElementById('setupCard');
+const quizCard = document.getElementById('quizCard');
+const quizTitle = document.getElementById('quizTitle');
+const quizMeta = document.getElementById('quizMeta');
+const qIndex = document.getElementById('qIndex');
+const qTotal = document.getElementById('qTotal');
+const questionText = document.getElementById('questionText');
+const optionsList = document.getElementById('optionsList');
+const progressText = document.getElementById('progressText');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const explainBox = document.getElementById('explainBox');
+const resultBox = document.getElementById('resultBox');
+const restartBtn = document.getElementById('restartBtn');
+const shareResultBtn = document.getElementById('shareResultBtn');
+const scoreText = document.getElementById('scoreText');
+
+/* ===== State ===== */
+let state = {
+  genre: 'Shonen',
+  difficulty: 'easy',
+  questions: [],
+  index: 0,
+  answers: [] // user selected indices
+};
+
+/* ===== Track completed quizzes in localStorage ===== */
+function getCompletedQuizzes(){
+  const stored = localStorage.getItem('completedQuizzes');
+  return stored ? JSON.parse(stored) : {};
+}
+
+function markQuizComplete(genre, difficulty){
+  const completed = getCompletedQuizzes();
+  const key = `${genre}|${difficulty}`;
+  completed[key] = true;
+  localStorage.setItem('completedQuizzes', JSON.stringify(completed));
+}
+
+function isQuizCompleted(genre, difficulty){
+  const completed = getCompletedQuizzes();
+  const key = `${genre}|${difficulty}`;
+  return completed[key] === true;
+}
+
+function updateStartButtonState(){
+  const genre = genreSelect.value;
+  const difficulty = diffSelect.value;
+  if(isQuizCompleted(genre, difficulty)){
+    startBtn.disabled = true;
+    startBtn.innerText = 'Quiz Already Completed';
+    startBtn.style.opacity = '0.6';
+  } else {
+    startBtn.disabled = false;
+    startBtn.innerText = 'Start Quiz';
+    startBtn.style.opacity = '1';
+  }
+}
+
+/* ===== Fill dataset from params if present ===== */
+function initFromURL(){
+  const g = getParam('genre');
+  const d = getParam('difficulty');
+  if(g && QUIZ_DB[g]) state.genre = g;
+  if(d && (d==='easy'||d==='normal'||d==='hard')) state.difficulty = d;
+  genreSelect.value = state.genre;
+  diffSelect.value = state.difficulty;
+  updateStartButtonState();
+  // Add listeners to update button state when selections change
+  genreSelect.addEventListener('change', updateStartButtonState);
+  diffSelect.addEventListener('change', updateStartButtonState);
+}
+
+/* ===== Build questions list ===== */
+function loadQuestions(){
+  const g = state.genre;
+  const d = state.difficulty;
+  const bucket = QUIZ_DB[g] && QUIZ_DB[g][d];
+  if(!bucket || !bucket.length) return [];
+  
+  // Determine question count based on difficulty
+  const questionCounts = {
+    easy: 5,
+    normal: 10,
+    hard: 15
+  };
+  const limit = questionCounts[d] || 5;
+  
+  // clone and normalize: convert 'question', 'options', 'answer' to 'q', 'opts', 'a', add 'ex'
+  return bucket.slice(0, limit).map(q => ({
+    q: q.question,
+    opts: q.options,
+    a: q.options.indexOf(q.answer),  // find index of correct answer
+    ex: 'Well done!' // placeholder explanation
+  }));
+}
+
+/* ===== Render selection-based share link ===== */
+function getShareURL(){
+  // Use window.location.origin as base - Netlify will serve this at the correct URL in production
+  const baseUrl = window.location.origin;
+  const url = new URL(baseUrl);
+  url.searchParams.set('genre', state.genre);
+  url.searchParams.set('difficulty', state.difficulty);
+  return url.toString();
+}
+
+/* ===== Render question UI ===== */
+function renderQuestion(){
+  explainBox.style.display = 'none';
+  resultBox.style.display = 'none';
+
+  const qs = state.questions;
+  const idx = state.index;
+  qIndex.innerText = idx+1;
+  qTotal.innerText = qs.length;
+  const q = qs[idx];
+  questionText.innerText = q.q;
+  optionsList.innerHTML = '';
+
+  q.opts.forEach((opt, i) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.innerText = opt;
+    btn.onclick = () => handleAnswer(i);
+    // if already answered show state
+    if(typeof state.answers[idx] === 'number'){
+      btn.disabled = true;
+      if(i === state.answers[idx]){
+        btn.classList.add(i === q.a ? 'correct' : 'wrong');
+      } else if(i === q.a){
+        // reveal correct
+        btn.classList.add('correct');
+      }
+    }
+    li.appendChild(btn);
+    optionsList.appendChild(li);
+  });
+
+  progressText.innerText = `${idx+1} of ${qs.length}`;
+  prevBtn.style.display = idx>0 ? 'inline-block' : 'none';
+  nextBtn.style.display = (typeof state.answers[idx] === 'number' && idx < qs.length-1) ? 'inline-block' : 'none';
+  if(idx === qs.length-1 && typeof state.answers[idx] === 'number'){
+    // show final result control
+    document.getElementById('resultBox').style.display = 'block';
+    computeAndShowResult();
+  } else {
+    document.getElementById('resultBox').style.display = 'none';
+  }
+}
+
+/* ===== handle answer selection ===== */
+function handleAnswer(selected){
+  const idx = state.index;
+  state.answers[idx] = selected;
+
+  // show explanation
+  const q = state.questions[idx];
+  explainBox.innerHTML = `<strong>Explanation:</strong> ${q.ex}`;
+  explainBox.style.display = 'block';
+
+  // disable buttons and mark correct/wrong
+  Array.from(optionsList.querySelectorAll('button')).forEach((b,i)=>{
+    b.disabled = true;
+    b.classList.remove('correct','wrong');
+    if(i === q.a) b.classList.add('correct');
+    if(i === selected && i !== q.a) b.classList.add('wrong');
+  });
+
+  // show next if not last
+  nextBtn.style.display = idx < state.questions.length-1 ? 'inline-block' : 'none';
+  // also show result if last
+  if(idx === state.questions.length-1){
+    computeAndShowResult();
+  }
+}
+
+/* ===== compute score and show result area ===== */
+function computeAndShowResult(){
+  const total = state.questions.length;
+  const correct = state.answers.reduce((sum, sel, i) => {
+    if(typeof sel === 'number' && sel === state.questions[i].a) return sum+1;
+    return sum;
+  }, 0);
+  scoreText.innerText = `You scored ${correct} / ${total}`;
+  resultBox.style.display = 'block';
+}
+
+/* ===== navigation controls ===== */
+prevBtn.onclick = () => {
+  if(state.index > 0) {
+    state.index--;
+    renderQuestion();
+  }
+};
+nextBtn.onclick = () => {
+  if(state.index < state.questions.length-1){
+    state.index++;
+    renderQuestion();
+  }
+};
+restartBtn.onclick = () => {
+  // Go back to selection screen and update button state
+  setupCard.style.display = '';
+  quizCard.style.display = 'none';
+  state.questions = [];
+  state.index = 0;
+  state.answers = [];
+  // Update the start button state based on current selections
+  updateStartButtonState();
+};
+shareResultBtn.onclick = () => {
+  // compute score
+  const total = state.questions.length;
+  const score = state.answers.reduce((sum, sel, i) => {
+    if(typeof sel === 'number' && sel === state.questions[i].a) return sum+1;
+    return sum;
+  }, 0);
+  // Mark quiz as complete
+  markQuizComplete(state.genre, state.difficulty);
+  // submit score to serverless function and then share to Facebook
+  submitScore(state.genre, state.difficulty, score, total, true);
+};
+
+/* ===== start quiz action ===== */
+startBtn.onclick = () => {
+  state.genre = genreSelect.value;
+  state.difficulty = diffSelect.value;
+  
+  // Check if this quiz has already been completed
+  if(isQuizCompleted(state.genre, state.difficulty)){
+    alert('You have already completed this quiz. Try a different genre or difficulty!');
+    return;
+  }
+  
+  setParams({genre: state.genre, difficulty: state.difficulty});
+  state.questions = loadQuestions();
+  state.index = 0;
+  state.answers = [];
+  // update UI
+  quizMeta.innerText = `${state.genre} • ${state.difficulty}`;
+  quizTitle.innerText = `${state.genre} — ${state.difficulty.charAt(0).toUpperCase() + state.difficulty.slice(1)} Quiz`;
+  document.getElementById('qTotal').innerText = state.questions.length;
+  setupCard.style.display = 'none';
+  quizCard.style.display = 'block';
+  renderQuestion();
+};
+
+/* ===== copy / share buttons ===== */
+copyLinkBtn.onclick = async () => {
+  const url = getShareURL();
+  try {
+    await navigator.clipboard.writeText(url);
+    copyLinkBtn.innerText = 'Link copied!';
+    setTimeout(()=> copyLinkBtn.innerText = 'Copy link', 1500);
+  } catch(e){
+    prompt('Copy this link', url);
+  }
+};
+fbShareBtn.onclick = () => {
+  const url = encodeURIComponent(getShareURL());
+  const fb = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+  window.open(fb, '_blank', 'noopener');
+};
+twShareBtn.onclick = () => {
+  const url = encodeURIComponent(getShareURL());
+  const txt = encodeURIComponent(`Take this ${state.genre} quiz!`);
+  const tw = `https://twitter.com/intent/tweet?text=${txt}&url=${url}`;
+  window.open(tw, '_blank', 'noopener');
+};
+
+/* ===== Submit score to Netlify function ===== */
+async function submitScore(genre, difficulty, score, total, shouldShare = false){
+  try {
+    const resp = await fetch('/.netlify/functions/score', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ genre, difficulty, score, total })
+    });
+    const data = await resp.json();
+    if (data && data.ok) {
+      // show share URL to user
+      const shareUrl = data.share_url;
+      console.log('share url', shareUrl);
+      // put data.share_url into share buttons and copy-to-clipboard UI
+      document.getElementById('shareLink').innerText = shareUrl;
+      document.getElementById('shareLink').href = shareUrl;
+      
+      // If shouldShare is true, open Facebook share dialog
+      if (shouldShare) {
+        const encodedUrl = encodeURIComponent(shareUrl);
+        const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        window.open(facebookShareUrl, '_blank', 'noopener');
+      }
+    } else {
+      console.error('score save failed', data);
+    }
+  } catch(e) {
+    console.error('submit error', e);
+  }
+}
+
+/* ===== Load initial state if URL has params ===== */
+(function init(){
+  initFromURL();
+  // if user passed params, auto-start quiz
+  const autoStart = getParam('autostart') || false;
+  // update selects to reflect params
+  genreSelect.value = state.genre;
+  diffSelect.value = state.difficulty;
+  updateStartButtonState();
+  if(getParam('genre') && getParam('difficulty') && autoStart){
+    // Only auto-start if quiz hasn't been completed
+    if(!isQuizCompleted(state.genre, state.difficulty)){
+      startBtn.click();
+    } else {
+      setupCard.style.display = '';
+      quizCard.style.display = 'none';
+    }
+  } else {
+    // show selection card
+    setupCard.style.display = '';
+    quizCard.style.display = 'none';
+  }
+})();
+</script>
+</body>
+</html>
