@@ -844,10 +844,8 @@ function handleAnswer(selected){
   const idx = state.index;
   state.answers[idx] = selected;
 
-  // show explanation
+  // don't show explanation - just mark answer and move on
   const q = state.questions[idx];
-  explainBox.innerHTML = `<strong>Explanation:</strong> ${q.ex}`;
-  explainBox.style.display = 'block';
 
   // disable buttons and mark correct/wrong
   Array.from(optionsList.querySelectorAll('button')).forEach((b,i)=>{
