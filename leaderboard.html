@@ -12,8 +12,11 @@
     :root{ --brand:#ff6f61; --bg:#f7f8fb; --card:#fff; --maxw:900px; }
     body{font-family:Arial, sans-serif; background:var(--bg); margin:0; color:#111;}
     .wrap{max-width:var(--maxw); margin:28px auto; padding:20px;}
-    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px;justify-content:space-between}
+    .header-left{display:flex;align-items:center;gap:16px}
     header h1{margin:0;color:var(--brand);font-size:20px}
+    .user-info{display:flex;align-items:center;gap:8px}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:#e6e9ee}
     .card{background:var(--card); border-radius:12px; padding:18px; box-shadow:0 6px 22px rgba(15,23,42,0.06);}
     .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px}
     select, button{padding:10px 12px;border-radius:8px;border:1px solid #e6e9ee;font-size:15px}
@@ -37,12 +40,22 @@
     .nav-buttons a{color:white;text-decoration:none}
     @media(min-width:720px){ .controls{flex-wrap:nowrap} }
   </style>
+  <script src="js/auth.js"></script>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
-      <h1>All.Anime — Leaderboard</h1>
+      <div class="header-left">
+        <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
+        <h1>All.Anime — Leaderboard</h1>
+      </div>
+      <div class="user-info" id="userInfo" style="display:none;gap:12px">
+        <div style="text-align:right">
+          <div style="font-weight:700;font-size:13px" id="userName">User</div>
+          <button id="logoutBtn" style="background:none;border:none;color:var(--brand);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">Sign out</button>
+        </div>
+      </div>
+      <a href="login.html" id="loginBtn" style="color:var(--brand);text-decoration:none;font-size:13px;display:none">Sign in</a>
     </header>
 
     <!-- TOP BANNER AD (MultiTag) -->
@@ -84,19 +97,11 @@
 
         <div style="flex:1"></div>
 
-        <div class="small" id="resultCount">Loading leaderboard...</div>
-      </div>
-
-      <!-- SIDE AD (In-Page Push Banner) -->
-      <div style="margin-bottom:18px">
-        <script>(function(s){s.dataset.zone='10175962',s.src='https://forfrogadiertor.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-      </div>
-
-      <div id="leaderboardContainer">
         <table>
           <thead>
             <tr>
               <th class="rank">Rank</th>
+              <th>Player</th>
               <th>Genre</th>
               <th>Difficulty</th>
               <th class="score-display">Score</th>
@@ -105,12 +110,11 @@
           </thead>
           <tbody id="leaderboardBody">
             <tr>
-              <td colspan="5" class="empty-state">Loading scores...</td>
+              <td colspan="6" class="empty-state">Loading scores...</td>
             </tr>
           </tbody>
-        </table>
-      </div>
-
+        </table>h class="score-display">Score</th>
+              <th class="small">Date</th>
       <!-- CONTENT AD -->
       <div class="ad-section" style="margin-top:18px">
         <div>📢 Content Advertisement Placeholder (728x90 or responsive)</div>
@@ -121,44 +125,94 @@
   </div>
 
 <script>
-const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqc3ZucnpsenpxZnZjdnlzYmpwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjEwMTE3MywiZXhwIjoyMDc3Njc3MTczfQ.gbug-aZgbX7OV-w0UrycSMXWMY3hJUWYaxqI92RgxYU';
-
-// Simple Supabase client
-class SupabaseClient {
-  constructor(url, key) {
-    this.url = url;
-    this.key = key;
+// Initialize auth
+function initAuth() {
+  const auth = new SupabaseAuth();
+  
+  // Handle OAuth callback
+  const authSuccess = auth.handleOAuthCallback();
+  if (authSuccess) {
+    // Clear the hash from URL
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
-
-  async fetchScores(genre, difficulty) {
-    let query = `${this.url}/rest/v1/scores?select=*&order=score.desc,created_at.desc&limit=100`;
+  
+  // Update UI based on auth state
+  if (auth.isAuthenticated()) {
+    document.getElementById('userInfo').style.display = 'flex';
+    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('userName').textContent = auth.getDisplayName();
     
-    if (genre) query += `&genre=eq.${encodeURIComponent(genre)}`;
-    if (difficulty) query += `&difficulty=eq.${difficulty}`;
-
-    try {
-      const response = await fetch(query, {
-        headers: {
-          'apikey': this.key,
-          'Authorization': `Bearer ${this.key}`
-        }
-      });
-      
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
-    } catch (err) {
-      console.error('Error fetching scores:', err);
-      return [];
-    }
+    document.getElementById('logoutBtn').onclick = function() {
+      auth.logout();
+      window.location.reload();
+    };
+  } else {
+    document.getElementById('userInfo').style.display = 'none';
+    document.getElementById('loginBtn').style.display = 'block';
   }
+
+  return auth;
 }
 
+const authClient = initAuth();
+      <!-- CONTENT AD -->
+      <div class="ad-section" style="margin-top:18px">
+        <div>📢 Content Advertisement Placeholder (728x90 or responsive)</div>
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
 const genreSelect = document.getElementById('genreSelect');
 const diffSelect = document.getElementById('diffSelect');
 const filterBtn = document.getElementById('filterBtn');
 const leaderboardBody = document.getElementById('leaderboardBody');
+const resultCount = document.getElementById('resultCount');
+
+async function loadLeaderboard() {
+  const genre = genreSelect.value;
+  const difficulty = diffSelect.value;
+
+  leaderboardBody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading...</td></tr>';
+  
+  const scores = await supabase.fetchScores(genre, difficulty);
+
+  if (!scores || scores.length === 0) {
+    leaderboardBody.innerHTML = '<tr><td colspan="6" class="empty-state">No scores yet. Be the first to take a quiz!</td></tr>';
+    resultCount.innerText = 'No scores found';
+    return;
+  }
+
+  resultCount.innerText = `Showing ${scores.length} score${scores.length !== 1 ? 's' : ''}`;
+
+  const currentUserId = authClient && authClient.isAuthenticated() ? authClient.getUserId() : null;
+
+  leaderboardBody.innerHTML = scores.map((score, idx) => {
+    const rank = idx + 1;
+    let rankClass = 'rank';
+    let rankDisplay = `#${rank}`;
+    let rowClass = '';
+    
+    if (rank === 1) { rankClass += ' gold'; rankDisplay = '🥇'; }
+    else if (rank === 2) { rankClass += ' silver'; rankDisplay = '🥈'; }
+    else if (rank === 3) { rankClass += ' bronze'; rankDisplay = '🥉'; }
+
+    // Highlight current user's score
+    if (currentUserId && score.user_id === currentUserId) {
+      rowClass = 'style="background:#f5f0ff;font-weight:700"';
+    }
+
+    const date = new Date(score.created_at).toLocaleDateString();
+    const playerName = score.user_name || 'Anonymous';
+    
+    return `
+      <tr ${rowClass}>
+        <td class="${rankClass}">${rankDisplay}</td>
+        <td>${playerName}${currentUserId && score.user_id === currentUserId ? ' (you)' : ''}</td>
+        <td>${score.genre}</td>
+        <td>${score.difficulty}</td>
+        <td class="score-display">${score.score}/${score.total}</td>
+        <td class="small">${date}</td>
+      </tr>
+    `;
+  }).join('');
+}onst leaderboardBody = document.getElementById('leaderboardBody');
 const resultCount = document.getElementById('resultCount');
 
 async function loadLeaderboard() {

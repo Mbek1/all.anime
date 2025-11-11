@@ -12,8 +12,11 @@
     :root{ --brand:#ff6f61; --bg:#f7f8fb; --card:#fff; --maxw:900px; }
     body{font-family:Arial, sans-serif; background:var(--bg); margin:0; color:#111;}
     .wrap{max-width:var(--maxw); margin:28px auto; padding:20px;}
-    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px;justify-content:space-between}
     header h1{margin:0;color:var(--brand);font-size:20px}
+    .header-left{display:flex;align-items:center;gap:16px}
+    .user-info{display:flex;align-items:center;gap:8px}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:#e6e9ee}
     .card{background:var(--card); border-radius:12px; padding:18px; box-shadow:0 6px 22px rgba(15,23,42,0.06);}
     .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
     select, button{padding:10px 12px;border-radius:8px;border:1px solid #e6e9ee;font-size:15px}
@@ -32,12 +35,22 @@
     footer{margin-top:20px;text-align:center;color:#666;font-size:13px}
     @media(min-width:720px){ .controls{flex-wrap:nowrap} .options button{font-size:16px} }
   </style>
+  <script src="js/auth.js"></script>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
-      <h1>All.Anime — Quiz Hub</h1>
+      <div class="header-left">
+        <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
+        <h1>All.Anime — Quiz Hub</h1>
+      </div>
+      <div class="user-info" id="userInfo" style="display:none;gap:12px">
+        <div style="text-align:right">
+          <div style="font-weight:700;font-size:13px" id="userName">User</div>
+          <button id="logoutBtn" style="background:none;border:none;color:var(--brand);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">Sign out</button>
+        </div>
+      </div>
+      <a href="login.html" id="loginBtn" style="color:var(--brand);text-decoration:none;font-size:13px;display:none">Sign in</a>
     </header>
 
     <!-- TOP BANNER AD (MultiTag) -->
@@ -975,10 +988,17 @@ twShareBtn.onclick = () => {
 /* ===== Submit score to Netlify function ===== */
 async function submitScore(genre, difficulty, score, total, shouldShare = false){
   try {
+    const payload = { genre, difficulty, score, total };
+    
+    // Include user_id if authenticated
+    if (authClient && authClient.isAuthenticated()) {
+      payload.user_id = authClient.getUserId();
+    }
+    
     const resp = await fetch('/.netlify/functions/score', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ genre, difficulty, score, total })
+      body: JSON.stringify(payload)
     });
     const data = await resp.json();
     if (data && data.ok) {
@@ -1002,6 +1022,37 @@ async function submitScore(genre, difficulty, score, total, shouldShare = false)
     console.error('submit error', e);
   }
 }
+
+/* ===== Authentication Setup ===== */
+function initAuth() {
+  const auth = new SupabaseAuth();
+  
+  // Handle OAuth callback
+  const authSuccess = auth.handleOAuthCallback();
+  if (authSuccess) {
+    // Clear the hash from URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+  
+  // Update UI based on auth state
+  if (auth.isAuthenticated()) {
+    document.getElementById('userInfo').style.display = 'flex';
+    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('userName').textContent = auth.getDisplayName();
+    
+    document.getElementById('logoutBtn').onclick = function() {
+      auth.logout();
+      window.location.reload();
+    };
+  } else {
+    document.getElementById('userInfo').style.display = 'none';
+    document.getElementById('loginBtn').style.display = 'block';
+  }
+
+  return auth;
+}
+
+const authClient = initAuth();
 
 /* ===== Load initial state if URL has params ===== */
 (function init(){
