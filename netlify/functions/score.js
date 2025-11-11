@@ -1,6 +1,8 @@
 // score.js - Netlify Function (Supabase)
 const { createClient } = require('@supabase/supabase-js');
-const { nanoid } = require('nanoid');
+
+// Use nanoid CommonJS version
+const { nanoid } = require('nanoid/non-secure');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
