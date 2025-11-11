@@ -1,8 +1,15 @@
 // score.js - Netlify Function (Supabase)
 const { createClient } = require('@supabase/supabase-js');
 
-// Use nanoid CommonJS version
-const { nanoid } = require('nanoid/non-secure');
+// Simple token generator (replaces nanoid which has ES Module issues)
+function generateToken(length = 8) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < length; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -47,7 +54,7 @@ exports.handler = async function(event) {
     }
 
     // create a short token
-    const token = nanoid(8);
+    const token = generateToken(8);
 
     // insert row
     const { data, error } = await supabase
