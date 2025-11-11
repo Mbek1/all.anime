@@ -97,6 +97,15 @@
 
         <div style="flex:1"></div>
 
+        <div class="small" id="resultCount">Loading leaderboard...</div>
+      </div>
+
+      <!-- SIDE AD (In-Page Push Banner) -->
+      <div style="margin-bottom:18px">
+        <script>(function(s){s.dataset.zone='10175962',s.src='https://forfrogadiertor.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+      </div>
+
+      <div id="leaderboardContainer">
         <table>
           <thead>
             <tr>
@@ -113,8 +122,9 @@
               <td colspan="6" class="empty-state">Loading scores...</td>
             </tr>
           </tbody>
-        </table>h class="score-display">Score</th>
-              <th class="small">Date</th>
+        </table>
+      </div>
+
       <!-- CONTENT AD -->
       <div class="ad-section" style="margin-top:18px">
         <div>📢 Content Advertisement Placeholder (728x90 or responsive)</div>
@@ -125,6 +135,39 @@
   </div>
 
 <script>
+const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqc3ZucnpsenpxZnZjdnlzYmpwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjEwMTE3MywiZXhwIjoyMDc3Njc3MTczfQ.gbug-aZgbX7OV-w0UrycSMXWMY3hJUWYaxqI92RgxYU';
+
+// Simple Supabase client
+class SupabaseClient {
+  constructor(url, key) {
+    this.url = url;
+    this.key = key;
+  }
+
+  async fetchScores(genre, difficulty) {
+    let query = `${this.url}/rest/v1/scores?select=*&order=score.desc,created_at.desc&limit=100`;
+    
+    if (genre) query += `&genre=eq.${encodeURIComponent(genre)}`;
+    if (difficulty) query += `&difficulty=eq.${difficulty}`;
+
+    try {
+      const response = await fetch(query, {
+        headers: {
+          'apikey': this.key,
+          'Authorization': `Bearer ${this.key}`
+        }
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (err) {
+      console.error('Error fetching scores:', err);
+      return [];
+    }
+  }
+}
+
 // Initialize auth
 function initAuth() {
   const auth = new SupabaseAuth();
@@ -155,9 +198,6 @@ function initAuth() {
 }
 
 const authClient = initAuth();
-      <!-- CONTENT AD -->
-      <div class="ad-section" style="margin-top:18px">
-        <div>📢 Content Advertisement Placeholder (728x90 or responsive)</div>
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
 const genreSelect = document.getElementById('genreSelect');
 const diffSelect = document.getElementById('diffSelect');
@@ -187,7 +227,7 @@ async function loadLeaderboard() {
     const rank = idx + 1;
     let rankClass = 'rank';
     let rankDisplay = `#${rank}`;
-    let rowClass = '';
+    let rowStyle = '';
     
     if (rank === 1) { rankClass += ' gold'; rankDisplay = '🥇'; }
     else if (rank === 2) { rankClass += ' silver'; rankDisplay = '🥈'; }
@@ -195,56 +235,16 @@ async function loadLeaderboard() {
 
     // Highlight current user's score
     if (currentUserId && score.user_id === currentUserId) {
-      rowClass = 'style="background:#f5f0ff;font-weight:700"';
+      rowStyle = 'style="background:#f5f0ff;font-weight:700"';
     }
 
     const date = new Date(score.created_at).toLocaleDateString();
     const playerName = score.user_name || 'Anonymous';
     
     return `
-      <tr ${rowClass}>
+      <tr ${rowStyle}>
         <td class="${rankClass}">${rankDisplay}</td>
         <td>${playerName}${currentUserId && score.user_id === currentUserId ? ' (you)' : ''}</td>
-        <td>${score.genre}</td>
-        <td>${score.difficulty}</td>
-        <td class="score-display">${score.score}/${score.total}</td>
-        <td class="small">${date}</td>
-      </tr>
-    `;
-  }).join('');
-}onst leaderboardBody = document.getElementById('leaderboardBody');
-const resultCount = document.getElementById('resultCount');
-
-async function loadLeaderboard() {
-  const genre = genreSelect.value;
-  const difficulty = diffSelect.value;
-
-  leaderboardBody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading...</td></tr>';
-  
-  const scores = await supabase.fetchScores(genre, difficulty);
-
-  if (!scores || scores.length === 0) {
-    leaderboardBody.innerHTML = '<tr><td colspan="5" class="empty-state">No scores yet. Be the first to take a quiz!</td></tr>';
-    resultCount.innerText = 'No scores found';
-    return;
-  }
-
-  resultCount.innerText = `Showing ${scores.length} score${scores.length !== 1 ? 's' : ''}`;
-
-  leaderboardBody.innerHTML = scores.map((score, idx) => {
-    const rank = idx + 1;
-    let rankClass = 'rank';
-    let rankDisplay = `#${rank}`;
-    
-    if (rank === 1) { rankClass += ' gold'; rankDisplay = '🥇'; }
-    else if (rank === 2) { rankClass += ' silver'; rankDisplay = '🥈'; }
-    else if (rank === 3) { rankClass += ' bronze'; rankDisplay = '🥉'; }
-
-    const date = new Date(score.created_at).toLocaleDateString();
-    
-    return `
-      <tr>
-        <td class="${rankClass}">${rankDisplay}</td>
         <td>${score.genre}</td>
         <td>${score.difficulty}</td>
         <td class="score-display">${score.score}/${score.total}</td>
