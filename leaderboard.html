@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>All.Anime Quiz — Leaderboard</title>
+  <meta property="og:title" content="All.Anime — Quiz Leaderboard">
+  <meta property="og:description" content="Check the top scorers on the All.Anime quiz leaderboard. See how you rank!">
+  <meta property="og:image" content="og_shonen.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root{ --brand:#ff6f61; --bg:#f7f8fb; --card:#fff; --maxw:900px; }
+    body{font-family:Arial, sans-serif; background:var(--bg); margin:0; color:#111;}
+    .wrap{max-width:var(--maxw); margin:28px auto; padding:20px;}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    header h1{margin:0;color:var(--brand);font-size:20px}
+    .card{background:var(--card); border-radius:12px; padding:18px; box-shadow:0 6px 22px rgba(15,23,42,0.06);}
+    .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px}
+    select, button{padding:10px 12px;border-radius:8px;border:1px solid #e6e9ee;font-size:15px}
+    button.primary{background:var(--brand); color:white; border:none; cursor:pointer;}
+    button a{color:white;text-decoration:none}
+    .small{font-size:13px;color:#666}
+    .ad-section{background:#f0f0f0;border:2px dashed #ccc;border-radius:8px;padding:20px;text-align:center;color:#999;margin-bottom:18px;min-height:100px;display:flex;align-items:center;justify-content:center}
+    .ad-section.banner{margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    table th{background:#f5f5f5;padding:12px;text-align:left;font-weight:700;border-bottom:2px solid #e6e9ee}
+    table td{padding:12px;border-bottom:1px solid #e6e9ee}
+    table tr:hover{background:#fafafa}
+    .rank{font-weight:700;color:var(--brand);width:50px}
+    .rank.gold{color:#FFD700}
+    .rank.silver{color:#C0C0C0}
+    .rank.bronze{color:#CD7F32}
+    .score-display{color:var(--brand);font-weight:700}
+    .empty-state{text-align:center;padding:40px 20px;color:#999}
+    footer{margin-top:20px;text-align:center;color:#666;font-size:13px}
+    .nav-buttons{display:flex;gap:8px;margin-bottom:18px}
+    .nav-buttons a{color:white;text-decoration:none}
+    @media(min-width:720px){ .controls{flex-wrap:nowrap} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
+      <h1>All.Anime — Leaderboard</h1>
+    </header>
+
+    <!-- TOP BANNER AD -->
+    <div class="card ad-section banner">
+      <div>📢 Advertisement Placeholder (728x90 or responsive banner)</div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="primary"><a href="index.html">← Back to Quiz</a></button>
+    </div>
+
+    <div class="card">
+      <div class="controls">
+        <label>
+          Genre
+          <select id="genreSelect" aria-label="Genre select">
+            <option value="">All Genres</option>
+            <option value="Shonen">Shonen</option>
+            <option value="Shojo">Shojo</option>
+            <option value="Isekai">Isekai</option>
+            <option value="Mecha">Mecha</option>
+            <option value="Slice of Life">Slice of Life</option>
+            <option value="Sports">Sports</option>
+            <option value="Classic">Classic</option>
+          </select>
+        </label>
+
+        <label>
+          Difficulty
+          <select id="diffSelect" aria-label="Difficulty select">
+            <option value="">All Difficulties</option>
+            <option value="easy">Easy</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+
+        <button id="filterBtn" class="primary">Apply Filters</button>
+
+        <div style="flex:1"></div>
+
+        <div class="small" id="resultCount">Loading leaderboard...</div>
+      </div>
+
+      <!-- SIDE AD -->
+      <div class="ad-section" style="margin-bottom:18px">
+        <div>📢 Side Advertisement Placeholder (300x250)</div>
+      </div>
+
+      <div id="leaderboardContainer">
+        <table>
+          <thead>
+            <tr>
+              <th class="rank">Rank</th>
+              <th>Genre</th>
+              <th>Difficulty</th>
+              <th class="score-display">Score</th>
+              <th class="small">Date</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <tr>
+              <td colspan="5" class="empty-state">Loading scores...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CONTENT AD -->
+      <div class="ad-section" style="margin-top:18px">
+        <div>📢 Content Advertisement Placeholder (728x90 or responsive)</div>
+      </div>
+    </div>
+
+    <footer>Made for All.Anime • Compete, Share, Inspire! • <a href="index.html" style="color:var(--brand)">Take the Quiz</a></footer>
+  </div>
+
+<script>
+const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqc3ZucnpsenpxZnZjdnlzYmpwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjEwMTE3MywiZXhwIjoyMDc3Njc3MTczfQ.gbug-aZgbX7OV-w0UrycSMXWMY3hJUWYaxqI92RgxYU';
+
+// Simple Supabase client
+class SupabaseClient {
+  constructor(url, key) {
+    this.url = url;
+    this.key = key;
+  }
+
+  async fetchScores(genre, difficulty) {
+    let query = `${this.url}/rest/v1/scores?select=*&order=score.desc,created_at.desc&limit=100`;
+    
+    if (genre) query += `&genre=eq.${encodeURIComponent(genre)}`;
+    if (difficulty) query += `&difficulty=eq.${difficulty}`;
+
+    try {
+      const response = await fetch(query, {
+        headers: {
+          'apikey': this.key,
+          'Authorization': `Bearer ${this.key}`
+        }
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (err) {
+      console.error('Error fetching scores:', err);
+      return [];
+    }
+  }
+}
+
+const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
+const genreSelect = document.getElementById('genreSelect');
+const diffSelect = document.getElementById('diffSelect');
+const filterBtn = document.getElementById('filterBtn');
+const leaderboardBody = document.getElementById('leaderboardBody');
+const resultCount = document.getElementById('resultCount');
+
+async function loadLeaderboard() {
+  const genre = genreSelect.value;
+  const difficulty = diffSelect.value;
+
+  leaderboardBody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading...</td></tr>';
+  
+  const scores = await supabase.fetchScores(genre, difficulty);
+
+  if (!scores || scores.length === 0) {
+    leaderboardBody.innerHTML = '<tr><td colspan="5" class="empty-state">No scores yet. Be the first to take a quiz!</td></tr>';
+    resultCount.innerText = 'No scores found';
+    return;
+  }
+
+  resultCount.innerText = `Showing ${scores.length} score${scores.length !== 1 ? 's' : ''}`;
+
+  leaderboardBody.innerHTML = scores.map((score, idx) => {
+    const rank = idx + 1;
+    let rankClass = 'rank';
+    let rankDisplay = `#${rank}`;
+    
+    if (rank === 1) { rankClass += ' gold'; rankDisplay = '🥇'; }
+    else if (rank === 2) { rankClass += ' silver'; rankDisplay = '🥈'; }
+    else if (rank === 3) { rankClass += ' bronze'; rankDisplay = '🥉'; }
+
+    const date = new Date(score.created_at).toLocaleDateString();
+    
+    return `
+      <tr>
+        <td class="${rankClass}">${rankDisplay}</td>
+        <td>${score.genre}</td>
+        <td>${score.difficulty}</td>
+        <td class="score-display">${score.score}/${score.total}</td>
+        <td class="small">${date}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+filterBtn.onclick = loadLeaderboard;
+
+// Load on page load
+window.addEventListener('DOMContentLoaded', loadLeaderboard);
+</script>
+</body>
+</html>
