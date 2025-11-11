@@ -13,7 +13,7 @@ function generateToken(length = 8) {
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const SITE_URL = process.env.SITE_URL; // e.g. https://your-site.netlify.app
+const SITE_URL = process.env.SITE_URL; 
 
 console.log('Netlify Function initialized with:', { 
   SUPABASE_URL: SUPABASE_URL ? 'SET' : 'MISSING',
