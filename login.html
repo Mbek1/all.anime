@@ -91,26 +91,30 @@
       }
     }
 
-    async function signInWithGoogle() {
+    function signInWithGoogle() {
       showLoading();
       try {
-        // Redirect to Supabase OAuth endpoint
-        const redirectUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=google&client_id=${SUPABASE_KEY}&redirect_to=${encodeURIComponent(window.location.origin + '/index.html')}`;
-        window.location.href = redirectUrl;
+        // Use Supabase's standard OAuth flow
+        const redirectUri = encodeURIComponent(window.location.origin + '/index.html');
+        const url = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${redirectUri}&skip_http_redirect=false`;
+        window.location.href = url;
       } catch (err) {
-        showError('Failed to sign in with Google');
+        console.error('Google sign-in error:', err);
+        showError('Failed to sign in with Google. Please check your browser console.');
         hideLoading();
       }
     }
 
-    async function signInWithGitHub() {
+    function signInWithGitHub() {
       showLoading();
       try {
-        // Redirect to Supabase OAuth endpoint
-        const redirectUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=github&client_id=${SUPABASE_KEY}&redirect_to=${encodeURIComponent(window.location.origin + '/index.html')}`;
-        window.location.href = redirectUrl;
+        // Use Supabase's standard OAuth flow
+        const redirectUri = encodeURIComponent(window.location.origin + '/index.html');
+        const url = `${SUPABASE_URL}/auth/v1/authorize?provider=github&redirect_to=${redirectUri}&skip_http_redirect=false`;
+        window.location.href = url;
       } catch (err) {
-        showError('Failed to sign in with GitHub');
+        console.error('GitHub sign-in error:', err);
+        showError('Failed to sign in with GitHub. Please check your browser console.');
         hideLoading();
       }
     }
