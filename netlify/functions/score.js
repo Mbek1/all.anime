@@ -6,20 +6,39 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const SITE_URL = process.env.SITE_URL; // e.g. https://your-site.netlify.app
 
-if (!SUPABASE_URL || !SUPABASE_KEY || !SITE_URL) {
-  console.error('Missing one of SUPABASE_URL, SUPABASE_KEY, SITE_URL env vars');
+console.log('Netlify Function initialized with:', { 
+  SUPABASE_URL: SUPABASE_URL ? 'SET' : 'MISSING',
+  SUPABASE_KEY: SUPABASE_KEY ? 'SET' : 'MISSING',
+  SITE_URL: SITE_URL ? SITE_URL : 'MISSING'
+});
+
+let supabase;
+
+try {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_KEY env vars');
+  }
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (err) {
+  console.error('Failed to initialize Supabase:', err);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
 exports.handler = async function(event) {
+  console.log('Score function called:', { method: event.httpMethod });
+  
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   try {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     const body = JSON.parse(event.body || '{}');
     const { genre, difficulty, score, total } = body;
+
+    console.log('Request body:', { genre, difficulty, score, total });
 
     if (!genre || !difficulty || typeof score !== 'number' || typeof total !== 'number') {
       return { statusCode: 400, body: JSON.stringify({ error: 'invalid_payload' }) };
@@ -37,8 +56,10 @@ exports.handler = async function(event) {
 
     if (error) {
       console.error('Supabase insert error', error);
-      return { statusCode: 500, body: JSON.stringify({ error: 'db_error' }) };
+      return { statusCode: 500, body: JSON.stringify({ error: 'db_error', details: error.message }) };
     }
+
+    console.log('Score saved successfully:', token);
 
     // share URL -> we use a pretty path /share/:token via netlify redirects
     const shareUrl = `${SITE_URL}/share/${token}`;
@@ -49,6 +70,6 @@ exports.handler = async function(event) {
     };
   } catch (err) {
     console.error('Server error', err);
-    return { statusCode: 500, body: JSON.stringify({ error: 'server_error' }) };
+    return { statusCode: 500, body: JSON.stringify({ error: 'server_error', message: err.message }) };
   }
 };
