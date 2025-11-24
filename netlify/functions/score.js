@@ -45,9 +45,9 @@ exports.handler = async function(event) {
     }
 
     const body = JSON.parse(event.body || '{}');
-    const { genre, difficulty, score, total, user_id } = body;
+    const { genre, difficulty, score, total, username, email } = body;
 
-    console.log('Request body:', { genre, difficulty, score, total, user_id });
+    console.log('Request body:', { genre, difficulty, score, total, username, email });
 
     if (!genre || !difficulty || typeof score !== 'number' || typeof total !== 'number') {
       return { statusCode: 400, body: JSON.stringify({ error: 'invalid_payload' }) };
@@ -55,34 +55,12 @@ exports.handler = async function(event) {
 
     // create a short token
     const token = generateToken(8);
-
-    // If user_id is provided, fetch their name from Supabase Auth
-    let user_name = 'Anonymous';
-    if (user_id) {
-      try {
-        const userResponse = await fetch(`${SUPABASE_URL}/rest/v1/auth.users?id=eq.${user_id}`, {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        });
-        
-        if (userResponse.ok) {
-          const users = await userResponse.json();
-          if (users && users[0]) {
-            user_name = users[0].user_metadata?.name || users[0].email || 'Anonymous';
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch user name:', err);
-        // Continue with Anonymous if fetch fails
-      }
-    }
+    const user_name = username || 'Anonymous';
 
     // insert row
     const { data, error } = await supabase
       .from('scores')
-      .insert([{ genre, difficulty, score, total, token, user_id, user_name }])
+      .insert([{ genre, difficulty, score, total, token, user_id: null, user_name }])
       .select()
       .single();
 

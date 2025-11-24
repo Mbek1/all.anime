@@ -37,28 +37,37 @@
     .modal.show { display: flex; }
     .modal-content { background: var(--card); border-radius: 12px; padding: 40px; max-width: 400px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
     .modal-close { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
-    .auth-btn { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #e6e9ee; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; background: white; }
-    .auth-btn:hover { background: #f5f5f5; border-color: #d0d0d0; }
-    .auth-btn.google { border: 1px solid #dadce0; }
-    .auth-btn.github { background: #24292e; color: white; border-color: #24292e; }
+    .reg-form { display: flex; flex-direction: column; gap: 12px; }
+    .reg-form input { padding: 10px 12px; border: 1px solid #e6e9ee; border-radius: 8px; font-size: 14px; }
+    .reg-form input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.1); }
+    .reg-form button { padding: 10px 12px; background: var(--brand); color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600; }
+    .reg-form button:hover { opacity: 0.9; }
+    .form-error { color: #d32f2f; font-size: 13px; }
     @media(min-width:720px){ .controls{flex-wrap:nowrap} .options button{font-size:16px} }
   </style>
-  <script src="js/auth.js"></script>
 </head>
 <body>
+  <!-- Registration Modal -->
+  <div id="registrationModal" class="modal show">
+    <div class="modal-content">
+      <h2 style="margin:0 0 10px 0;color:var(--brand)">Welcome to All.Anime Quiz!</h2>
+      <p style="margin:0 0 20px 0;color:#666;font-size:13px">Enter your details to get started</p>
+      <form class="reg-form" id="registrationForm">
+        <input type="text" id="regUsername" placeholder="Username" required />
+        <input type="email" id="regEmail" placeholder="Email (optional)" />
+        <div id="regError" class="form-error" style="display:none;"></div>
+        <button type="submit">Start Quiz</button>
+      </form>
+    </div>
+  </div>
+
   <div class="wrap">
     <header>
       <div class="header-left">
         <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
         <h1>All.Anime — Quiz Hub</h1>
       </div>
-      <div class="user-info" id="userInfo" style="display:none;gap:12px">
-        <div style="text-align:right">
-          <div style="font-weight:700;font-size:13px" id="userName">User</div>
-          <button id="logoutBtn" style="background:none;border:none;color:var(--brand);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">Sign out</button>
-        </div>
-      </div>
-      <a href="login.html" id="loginBtn" style="color:var(--brand);text-decoration:none;font-size:13px;display:none">Sign in</a>
+      <div id="userDisplay" style="font-weight:700;font-size:13px;color:var(--brand)"></div>
     </header>
 
     <!-- TOP BANNER AD (MultiTag) -->
@@ -997,12 +1006,14 @@ twShareBtn.onclick = () => {
 /* ===== Submit score to Netlify function ===== */
 async function submitScore(genre, difficulty, score, total, shouldShare = false){
   try {
-    const payload = { genre, difficulty, score, total };
-    
-    // Include user_id if authenticated
-    if (authClient && authClient.isAuthenticated()) {
-      payload.user_id = authClient.getUserId();
-    }
+    const payload = { 
+      genre, 
+      difficulty, 
+      score, 
+      total,
+      username: currentUser?.username || 'Anonymous',
+      email: currentUser?.email || ''
+    };
     
     const resp = await fetch('/.netlify/functions/score', {
       method: 'POST',
@@ -1036,72 +1047,57 @@ async function submitScore(genre, difficulty, score, total, shouldShare = false)
 let authClient;
 
 function updateAuthUI() {
-  const userInfoEl = document.getElementById('userInfo');
-  const loginBtnEl = document.getElementById('loginBtn');
-  const userNameEl = document.getElementById('userName');
-  
-  if (authClient && authClient.isAuthenticated()) {
-    const displayName = authClient.getDisplayName();
-    console.log('Updating UI - User authenticated:', displayName);
-    
-    if (userInfoEl) userInfoEl.style.display = 'flex';
-    if (loginBtnEl) loginBtnEl.style.display = 'none';
-    if (userNameEl) userNameEl.textContent = displayName || 'User';
-    
-    if (document.getElementById('logoutBtn')) {
-      document.getElementById('logoutBtn').onclick = function() {
-        authClient.logout();
-        window.location.reload();
-      };
-    }
-  } else {
-    console.log('Updating UI - User not authenticated');
-    if (userInfoEl) userInfoEl.style.display = 'none';
-    if (loginBtnEl) loginBtnEl.style.display = 'block';
-    if (userNameEl) userNameEl.textContent = 'User';
+  // Not needed anymore - registration is shown at start
+}
+
+// User registration and management
+let currentUser = null;
+
+function loadUser() {
+  const userStr = localStorage.getItem('quiz_user');
+  if (userStr) {
+    currentUser = JSON.parse(userStr);
+    document.getElementById('userDisplay').textContent = `👤 ${currentUser.username}`;
+    document.getElementById('registrationModal').classList.remove('show');
   }
 }
 
-async function initAuth() {
-  authClient = new SupabaseAuth();
-  console.log('Checking for OAuth callback...');
-  console.log('Current auth state:', {
-    authenticated: authClient.isAuthenticated(),
-    user: authClient.user,
-    session: authClient.session
-  });
+function saveUser(username, email) {
+  currentUser = { username, email, registeredAt: new Date().toISOString() };
+  localStorage.setItem('quiz_user', JSON.stringify(currentUser));
+  document.getElementById('userDisplay').textContent = `👤 ${currentUser.username}`;
+  document.getElementById('registrationModal').classList.remove('show');
+}
+
+// Registration form handler
+document.getElementById('registrationForm').addEventListener('submit', function(e) {
+  e.preventDefault();
   
-  // Handle OAuth callback (async/await)
-  try {
-    const authSuccess = await authClient.handleOAuthCallback();
-    console.log('OAuth callback result:', authSuccess);
-  } catch (err) {
-    console.error('OAuth callback error:', err);
+  const username = document.getElementById('regUsername').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const errorDiv = document.getElementById('regError');
+  
+  if (!username) {
+    errorDiv.textContent = 'Username is required';
+    errorDiv.style.display = 'block';
+    return;
   }
   
-  // Reload auth state from localStorage after callback
-  authClient.session = authClient.getSession();
-  authClient.user = authClient.getUser();
+  if (username.length < 2) {
+    errorDiv.textContent = 'Username must be at least 2 characters';
+    errorDiv.style.display = 'block';
+    return;
+  }
   
-  console.log('Final auth state:', {
-    authenticated: authClient.isAuthenticated(),
-    user: authClient.user,
-    displayName: authClient.getDisplayName()
-  });
-  
-  // Update UI based on current auth state
-  updateAuthUI();
-  
-  return authClient;
-}
+  errorDiv.style.display = 'none';
+  saveUser(username, email);
+});
 
-function signOutUser() {
-  authClient.logout();
-  updateAuthUI();
+// Initialize
+loadUser();
+if (!currentUser) {
+  document.getElementById('registrationModal').classList.add('show');
 }
-
-// Initialize auth immediately
-initAuth();
 
 /* ===== Load initial state if URL has params ===== */
 (function init(){
