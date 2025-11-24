@@ -918,6 +918,10 @@ function computeAndShowResult(){
   }, 0);
   scoreText.innerText = `You scored ${correct} / ${total}`;
   resultBox.style.display = 'block';
+  
+  // Automatically mark quiz as complete and submit score
+  markQuizComplete(state.genre, state.difficulty);
+  submitScore(state.genre, state.difficulty, correct, total, false);
 }
 
 /* ===== navigation controls ===== */
@@ -944,16 +948,16 @@ restartBtn.onclick = () => {
   updateStartButtonState();
 };
 shareResultBtn.onclick = () => {
-  // compute score
-  const total = state.questions.length;
-  const score = state.answers.reduce((sum, sel, i) => {
-    if(typeof sel === 'number' && sel === state.questions[i].a) return sum+1;
-    return sum;
-  }, 0);
-  // Mark quiz as complete
-  markQuizComplete(state.genre, state.difficulty);
-  // submit score to serverless function and then share to Facebook
-  submitScore(state.genre, state.difficulty, score, total, true);
+  // Score already submitted automatically when quiz finished
+  // Just open Facebook share dialog with the share link
+  const shareLink = document.getElementById('shareLink').href;
+  if (shareLink && shareLink !== '#') {
+    const encodedUrl = encodeURIComponent(shareLink);
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    window.open(facebookShareUrl, '_blank', 'noopener');
+  } else {
+    alert('Please wait for the score to be submitted...');
+  }
 };
 
 /* ===== start quiz action ===== */
