@@ -95,22 +95,14 @@
   </div>
 
 <script>
-const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_Bt29V4RxtKWANOLVKdXplA_Rb-pLLkq';
+const FEEDBACK_API = '/.netlify/functions/feedback';
 
-class SupabaseClient {
-  constructor(url, key) {
-    this.url = url;
-    this.key = key;
-  }
-
-  async insertFeedback(feedback) {
+class FeedbackClient {
+  async submitFeedback(feedback) {
     try {
-      const response = await fetch(`${this.url}/rest/v1/feedback`, {
+      const response = await fetch(FEEDBACK_API, {
         method: 'POST',
         headers: {
-          'apikey': this.key,
-          'Authorization': `Bearer ${this.key}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(feedback)
@@ -123,24 +115,24 @@ class SupabaseClient {
 
       return await response.json();
     } catch (err) {
-      console.error('Error inserting feedback:', err);
+      console.error('Error submitting feedback:', err);
       throw err;
     }
   }
 
   async fetchFeedback(limit = 10) {
     try {
-      const response = await fetch(
-        `${this.url}/rest/v1/feedback?select=*&order=created_at.desc&limit=${limit}`,
-        {
-          headers: {
-            'apikey': this.key,
-            'Authorization': `Bearer ${this.key}`
-          }
+      const response = await fetch(`${FEEDBACK_API}?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       return await response.json();
     } catch (err) {
       console.error('Error fetching feedback:', err);
@@ -149,7 +141,7 @@ class SupabaseClient {
   }
 }
 
-const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const feedbackClient = new FeedbackClient();
 const form = document.getElementById('feedbackForm');
 const nameInput = document.getElementById('name');
 const emailInput = document.getElementById('email');
@@ -189,11 +181,10 @@ form.addEventListener('submit', async (e) => {
       name: nameInput.value || 'Anonymous',
       email: emailInput.value || null,
       category: categorySelect.value,
-      message: messageInput.value,
-      created_at: new Date().toISOString()
+      message: messageInput.value
     };
 
-    await supabase.insertFeedback(feedback);
+    await feedbackClient.submitFeedback(feedback);
 
     // Show success message
     successMsg.textContent = '✅ Thank you! Your feedback has been sent.';
@@ -228,7 +219,7 @@ form.addEventListener('submit', async (e) => {
 });
 
 async function loadFeedback() {
-  const feedbacks = await supabase.fetchFeedback(5);
+  const feedbacks = await feedbackClient.fetchFeedback(5);
 
   if (!feedbacks || feedbacks.length === 0) {
     feedbackList.innerHTML = '<p style="color: #999; font-size: 13px;">No feedback yet. Be the first to share!</p>';
