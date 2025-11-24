@@ -104,18 +104,26 @@ class SupabaseAuth {
    */
   async fetchUserProfile(accessToken) {
     try {
+      console.log('Fetching user profile with token:', accessToken.substring(0, 20) + '...');
       const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
+          'apikey': SUPABASE_KEY,
           'Content-Type': 'application/json',
         },
       });
 
+      console.log('User profile response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch user profile');
+        const errorText = await response.text();
+        console.error('Failed to fetch user profile - Response:', errorText);
+        throw new Error(`Failed to fetch user profile: ${response.status}`);
       }
 
       const user = await response.json();
+      console.log('User profile fetched successfully:', user.email);
 
       // Store user
       localStorage.setItem(USER_KEY, JSON.stringify(user));
