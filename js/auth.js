@@ -4,7 +4,7 @@
  */
 
 const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqc3ZucnpsenpxZnZjdnlzYmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA3MTc4MDAsImV4cCI6MTc0NjM0OTgwMH0.A1fTxPx8LQnnvOvqzTLF-y-hDLy1phSWJR3aW45QJho';
+const SUPABASE_KEY = 'sb_publishable_Bt29V4RxtKWANOLVKdXplA_Rb-pLLkq';
 const SESSION_KEY = 'sb_auth_session';
 const USER_KEY = 'sb_auth_user';
 
@@ -104,26 +104,18 @@ class SupabaseAuth {
    */
   async fetchUserProfile(accessToken) {
     try {
-      console.log('Fetching user profile with token:', accessToken.substring(0, 20) + '...');
       const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-        method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'apikey': SUPABASE_KEY,
           'Content-Type': 'application/json',
         },
       });
 
-      console.log('User profile response status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to fetch user profile - Response:', errorText);
-        throw new Error(`Failed to fetch user profile: ${response.status}`);
+        throw new Error('Failed to fetch user profile');
       }
 
       const user = await response.json();
-      console.log('User profile fetched successfully:', user.email);
 
       // Store user
       localStorage.setItem(USER_KEY, JSON.stringify(user));
