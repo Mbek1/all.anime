@@ -50,12 +50,15 @@ exports.handler = async function(event) {
     console.log('Request body:', { genre, difficulty, score, total, username, email });
 
     if (!genre || !difficulty || typeof score !== 'number' || typeof total !== 'number') {
+      console.error('Invalid payload:', body);
       return { statusCode: 400, body: JSON.stringify({ error: 'invalid_payload' }) };
     }
 
     // create a short token
     const token = generateToken(8);
     const user_name = username || 'Anonymous';
+
+    console.log('Inserting score:', { genre, difficulty, score, total, token, user_name });
 
     // insert row
     const { data, error } = await supabase
@@ -69,7 +72,7 @@ exports.handler = async function(event) {
       return { statusCode: 500, body: JSON.stringify({ error: 'db_error', details: error.message }) };
     }
 
-    console.log('Score saved successfully:', token);
+    console.log('Score saved successfully:', { token, data });
 
     // share URL -> we use a pretty path /share/:token via netlify redirects
     const shareUrl = `${SITE_URL}/share/${token}`;

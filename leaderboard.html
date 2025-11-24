@@ -146,6 +146,7 @@ class SupabaseClient {
     if (difficulty) query += `&difficulty=eq.${difficulty}`;
 
     try {
+      console.log('Fetching scores with query:', query);
       const response = await fetch(query, {
         headers: {
           'apikey': this.key,
@@ -153,8 +154,17 @@ class SupabaseClient {
         }
       });
       
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
+      const text = await response.text();
+      console.log('Response status:', response.status);
+      console.log('Response body:', text);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${text}`);
+      }
+      
+      const data = JSON.parse(text);
+      console.log('Parsed scores:', data);
+      return data;
     } catch (err) {
       console.error('Error fetching scores:', err);
       return [];
@@ -183,9 +193,11 @@ async function loadLeaderboard() {
   const genre = genreSelect.value;
   const difficulty = diffSelect.value;
 
+  console.log('Loading leaderboard with filters:', { genre, difficulty });
   leaderboardBody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading...</td></tr>';
   
   const scores = await supabase.fetchScores(genre, difficulty);
+  console.log('Scores returned:', scores);
 
   if (!scores || scores.length === 0) {
     leaderboardBody.innerHTML = '<tr><td colspan="6" class="empty-state">No scores yet. Be the first to take a quiz!</td></tr>';

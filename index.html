@@ -1019,16 +1019,23 @@ async function submitScore(genre, difficulty, score, total, shouldShare = false)
       email: currentUser?.email || ''
     };
     
+    console.log('Submitting score with payload:', payload);
+    
     const resp = await fetch('/.netlify/functions/score', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     });
-    const data = await resp.json();
+    
+    const text = await resp.text();
+    console.log('Score submission response status:', resp.status);
+    console.log('Score submission response:', text);
+    
+    const data = JSON.parse(text);
     if (data && data.ok) {
       // show share URL to user
       const shareUrl = data.share_url;
-      console.log('share url', shareUrl);
+      console.log('Score submitted successfully. Share URL:', shareUrl);
       // put data.share_url into share buttons and copy-to-clipboard UI
       document.getElementById('shareLink').innerText = shareUrl;
       document.getElementById('shareLink').href = shareUrl;
