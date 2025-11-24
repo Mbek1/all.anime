@@ -1066,41 +1066,57 @@ async function submitScore(genre, difficulty, score, total, shouldShare = false)
 }
 
 /* ===== Authentication Setup ===== */
-function initAuth() {
-  const auth = new SupabaseAuth();
-  
-  // Handle OAuth callback - this is async now
-  auth.handleOAuthCallback().then(authSuccess => {
-    if (authSuccess) {
-      console.log('OAuth successful, user authenticated');
-    }
-  }).catch(err => {
-    console.error('OAuth callback error:', err);
-  });
-  
-  // Update UI based on auth state (check current state)
-  if (auth.isAuthenticated()) {
+let authClient;
+
+function updateAuthUI() {
+  if (authClient.isAuthenticated()) {
     document.getElementById('userInfo').style.display = 'flex';
     document.getElementById('loginBtn').style.display = 'none';
-    document.getElementById('userName').textContent = auth.getDisplayName();
+    document.getElementById('userName').textContent = authClient.getDisplayName();
     document.getElementById('signInModal').classList.remove('show');
     
     document.getElementById('logoutBtn').onclick = function() {
-      auth.logout();
+      authClient.logout();
       window.location.reload();
     };
   } else {
     document.getElementById('userInfo').style.display = 'none';
     document.getElementById('loginBtn').style.display = 'block';
-    document.getElementById('loginBtn').onclick = () => document.getElementById('signInModal').classList.add('show');
+    if (document.getElementById('loginBtn')) {
+      document.getElementById('loginBtn').onclick = () => {
+        if (document.getElementById('signInModal')) {
+          document.getElementById('signInModal').classList.add('show');
+        }
+      };
+    }
   }
+}
 
-  return auth;
+function initAuth() {
+  authClient = new SupabaseAuth();
+  
+  // Handle OAuth callback
+  authClient.handleOAuthCallback().then(authSuccess => {
+    if (authSuccess) {
+      console.log('OAuth successful, user authenticated');
+      updateAuthUI();
+    }
+  }).catch(err => {
+    console.error('OAuth callback error:', err);
+  });
+  
+  // Update UI based on current state
+  updateAuthUI();
+  
+  return authClient;
 }
 
 // Modal functions
 function closeSignInModal() {
-  document.getElementById('signInModal').classList.remove('show');
+  const modal = document.getElementById('signInModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
 }
 
 function signInWithGoogleModal() {
@@ -1119,7 +1135,7 @@ function signInWithGitHubModal() {
   window.location.href = url;
 }
 
-const authClient = initAuth();
+initAuth();
 
 /* ===== Load initial state if URL has params ===== */
 (function init(){

@@ -52,13 +52,18 @@ class SupabaseAuth {
   handleOAuthCallback() {
     try {
       const hash = window.location.hash;
-      if (!hash) return false;
+      if (!hash) {
+        // No hash, return resolved promise with false
+        return Promise.resolve(false);
+      }
 
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
 
-      if (!accessToken) return false;
+      if (!accessToken) {
+        return Promise.resolve(false);
+      }
 
       // Store session
       const session = {
