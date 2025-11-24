@@ -1070,6 +1070,7 @@ let authClient;
 
 function updateAuthUI() {
   if (authClient.isAuthenticated()) {
+    console.log('User authenticated:', authClient.getDisplayName());
     document.getElementById('userInfo').style.display = 'flex';
     document.getElementById('loginBtn').style.display = 'none';
     document.getElementById('userName').textContent = authClient.getDisplayName();
@@ -1080,6 +1081,7 @@ function updateAuthUI() {
       window.location.reload();
     };
   } else {
+    console.log('User not authenticated');
     document.getElementById('userInfo').style.display = 'none';
     document.getElementById('loginBtn').style.display = 'block';
     if (document.getElementById('loginBtn')) {
@@ -1092,20 +1094,19 @@ function updateAuthUI() {
   }
 }
 
-function initAuth() {
+async function initAuth() {
   authClient = new SupabaseAuth();
+  console.log('Checking for OAuth callback...');
   
-  // Handle OAuth callback
-  authClient.handleOAuthCallback().then(authSuccess => {
-    if (authSuccess) {
-      console.log('OAuth successful, user authenticated');
-      updateAuthUI();
-    }
-  }).catch(err => {
+  // Handle OAuth callback (async/await)
+  try {
+    const authSuccess = await authClient.handleOAuthCallback();
+    console.log('OAuth callback result:', authSuccess);
+  } catch (err) {
     console.error('OAuth callback error:', err);
-  });
+  }
   
-  // Update UI based on current state
+  // Update UI based on current auth state
   updateAuthUI();
   
   return authClient;
@@ -1135,6 +1136,7 @@ function signInWithGitHubModal() {
   window.location.href = url;
 }
 
+// Initialize auth immediately
 initAuth();
 
 /* ===== Load initial state if URL has params ===== */

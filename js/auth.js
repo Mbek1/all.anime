@@ -49,12 +49,12 @@ class SupabaseAuth {
    * Extract auth data from URL fragment (OAuth callback)
    * Supabase returns: #access_token=xxx&token_type=bearer&expires_in=3600&refresh_token=yyy&type=recovery
    */
-  handleOAuthCallback() {
+  async handleOAuthCallback() {
     try {
       const hash = window.location.hash;
       if (!hash) {
-        // No hash, return resolved promise with false
-        return Promise.resolve(false);
+        // No hash, return false
+        return false;
       }
 
       const params = new URLSearchParams(hash.substring(1));
@@ -62,8 +62,10 @@ class SupabaseAuth {
       const refreshToken = params.get('refresh_token');
 
       if (!accessToken) {
-        return Promise.resolve(false);
+        return false;
       }
+
+      console.log('OAuth token found in URL, processing...');
 
       // Store session
       const session = {
@@ -74,18 +76,26 @@ class SupabaseAuth {
       };
 
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      console.log('Session stored');
 
       // Fetch user info from Supabase
-      return this.fetchUserProfile(accessToken).then(success => {
-        if (success) {
-          // Clear hash from URL without reloading
-          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
-        }
-        return success;
-      });
+      const success = await this.fetchUserProfile(accessToken);
+      
+      if (success) {
+        // Clear hash from URL without reloading
+        console.log('Clearing URL hash');
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        
+        // Reload auth state
+        this.session = this.getSession();
+        this.user = this.getUser();
+        console.log('Auth state reloaded, user:', this.user?.email);
+      }
+      
+      return success;
     } catch (e) {
       console.error('OAuth callback error:', e);
-      return Promise.resolve(false);
+      return false;
     }
   }
 
