@@ -94,6 +94,11 @@
         <div class="small" id="resultCount">Loading leaderboard...</div>
       </div>
 
+      <!-- DEBUG INFO -->
+      <div id="debugInfo" style="background:#f5f5f5;padding:10px;border-radius:6px;margin-bottom:18px;font-size:12px;max-height:150px;overflow-y:auto;display:none;white-space:pre-wrap;font-family:monospace;color:#666">
+        Debug info will appear here
+      </div>
+
       <!-- SIDE AD (In-Page Push Banner) -->
       <div style="margin-bottom:18px">
         <script>(function(s){s.dataset.zone='10175962',s.src='https://forfrogadiertor.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
@@ -130,7 +135,7 @@
 
 <script>
 const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqc3ZucnpsenpxZnZjdnlzYmpwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjEwMTE3MywiZXhwIjoyMDc3Njc3MTczfQ.gbug-aZgbX7OV-w0UrycSMXWMY3hJUWYaxqI92RgxYU';
+const SUPABASE_KEY = 'sb_publishable_Bt29V4RxtKWANOLVKdXplA_Rb-pLLkq';
 
 // Simple Supabase client
 class SupabaseClient {
@@ -146,7 +151,7 @@ class SupabaseClient {
     if (difficulty) query += `&difficulty=eq.${difficulty}`;
 
     try {
-      console.log('Fetching scores with query:', query);
+      addDebugLog('Query: ' + query);
       const response = await fetch(query, {
         headers: {
           'apikey': this.key,
@@ -155,17 +160,18 @@ class SupabaseClient {
       });
       
       const text = await response.text();
-      console.log('Response status:', response.status);
-      console.log('Response body:', text);
+      addDebugLog('Status: ' + response.status);
       
       if (!response.ok) {
+        addDebugLog('Error response: ' + text);
         throw new Error(`HTTP ${response.status}: ${text}`);
       }
       
       const data = JSON.parse(text);
-      console.log('Parsed scores:', data);
+      addDebugLog('Scores fetched: ' + data.length + ' records');
       return data;
     } catch (err) {
+      addDebugLog('Fetch error: ' + err.message);
       console.error('Error fetching scores:', err);
       return [];
     }
@@ -193,18 +199,19 @@ async function loadLeaderboard() {
   const genre = genreSelect.value;
   const difficulty = diffSelect.value;
 
-  console.log('Loading leaderboard with filters:', { genre, difficulty });
+  addDebugLog('Loading with filters - Genre: ' + (genre || 'All') + ', Difficulty: ' + (difficulty || 'All'));
   leaderboardBody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading...</td></tr>';
   
   const scores = await supabase.fetchScores(genre, difficulty);
-  console.log('Scores returned:', scores);
 
   if (!scores || scores.length === 0) {
+    addDebugLog('No scores returned from database');
     leaderboardBody.innerHTML = '<tr><td colspan="6" class="empty-state">No scores yet. Be the first to take a quiz!</td></tr>';
     resultCount.innerText = 'No scores found';
     return;
   }
 
+  addDebugLog('Rendering ' + scores.length + ' scores');
   resultCount.innerText = `Showing ${scores.length} score${scores.length !== 1 ? 's' : ''}`;
 
   leaderboardBody.innerHTML = scores.map((score, idx) => {
@@ -240,9 +247,30 @@ async function loadLeaderboard() {
 
 filterBtn.onclick = loadLeaderboard;
 
+// Debug logging function
+function addDebugLog(message) {
+  const debugPanel = document.getElementById('debugInfo');
+  debugPanel.textContent += '\n' + new Date().toLocaleTimeString() + ': ' + message;
+  debugPanel.style.display = 'block';
+  console.log(message);
+}
+
 // Load on page load
 loadUser();
-window.addEventListener('DOMContentLoaded', loadLeaderboard);
+window.addEventListener('DOMContentLoaded', () => {
+  addDebugLog('Page loaded');
+  addDebugLog('Supabase URL: ' + SUPABASE_URL);
+  addDebugLog('Supabase Key: ' + SUPABASE_KEY.substring(0, 20) + '...');
+  loadLeaderboard();
+});
+
+// Add keyboard shortcut to show debug panel
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'D' && e.ctrlKey) {
+    const debugPanel = document.getElementById('debugInfo');
+    debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+  }
+});
 </script>
 </body>
 </html>
