@@ -1036,26 +1036,40 @@ async function submitScore(genre, difficulty, score, total, shouldShare = false)
 let authClient;
 
 function updateAuthUI() {
-  if (authClient.isAuthenticated()) {
-    console.log('User authenticated:', authClient.getDisplayName());
-    document.getElementById('userInfo').style.display = 'flex';
-    document.getElementById('loginBtn').style.display = 'none';
-    document.getElementById('userName').textContent = authClient.getDisplayName();
+  const userInfoEl = document.getElementById('userInfo');
+  const loginBtnEl = document.getElementById('loginBtn');
+  const userNameEl = document.getElementById('userName');
+  
+  if (authClient && authClient.isAuthenticated()) {
+    const displayName = authClient.getDisplayName();
+    console.log('Updating UI - User authenticated:', displayName);
     
-    document.getElementById('logoutBtn').onclick = function() {
-      authClient.logout();
-      window.location.reload();
-    };
+    if (userInfoEl) userInfoEl.style.display = 'flex';
+    if (loginBtnEl) loginBtnEl.style.display = 'none';
+    if (userNameEl) userNameEl.textContent = displayName || 'User';
+    
+    if (document.getElementById('logoutBtn')) {
+      document.getElementById('logoutBtn').onclick = function() {
+        authClient.logout();
+        window.location.reload();
+      };
+    }
   } else {
-    console.log('User not authenticated');
-    document.getElementById('userInfo').style.display = 'none';
-    document.getElementById('loginBtn').style.display = 'block';
+    console.log('Updating UI - User not authenticated');
+    if (userInfoEl) userInfoEl.style.display = 'none';
+    if (loginBtnEl) loginBtnEl.style.display = 'block';
+    if (userNameEl) userNameEl.textContent = 'User';
   }
 }
 
 async function initAuth() {
   authClient = new SupabaseAuth();
   console.log('Checking for OAuth callback...');
+  console.log('Current auth state:', {
+    authenticated: authClient.isAuthenticated(),
+    user: authClient.user,
+    session: authClient.session
+  });
   
   // Handle OAuth callback (async/await)
   try {
@@ -1064,6 +1078,16 @@ async function initAuth() {
   } catch (err) {
     console.error('OAuth callback error:', err);
   }
+  
+  // Reload auth state from localStorage after callback
+  authClient.session = authClient.getSession();
+  authClient.user = authClient.getUser();
+  
+  console.log('Final auth state:', {
+    authenticated: authClient.isAuthenticated(),
+    user: authClient.user,
+    displayName: authClient.getDisplayName()
+  });
   
   // Update UI based on current auth state
   updateAuthUI();

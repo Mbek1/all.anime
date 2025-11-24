@@ -143,8 +143,19 @@ class SupabaseAuth {
    * Get user's display name
    */
   getDisplayName() {
-    if (!this.user) return null;
-    return this.user.user_metadata?.name || this.user.email || 'Anonymous';
+    if (!this.user) {
+      console.log('getDisplayName: No user object');
+      return 'User';
+    }
+    
+    const name = this.user.user_metadata?.name || this.user.email || 'User';
+    console.log('getDisplayName:', {
+      name,
+      has_metadata: !!this.user.user_metadata,
+      metadata_name: this.user.user_metadata?.name,
+      email: this.user.email
+    });
+    return name;
   }
 
   /**
