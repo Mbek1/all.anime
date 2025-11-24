@@ -40,7 +40,6 @@
     .nav-buttons a{color:white;text-decoration:none}
     @media(min-width:720px){ .controls{flex-wrap:nowrap} }
   </style>
-  <script src="js/auth.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -49,13 +48,7 @@
         <img src="image/allanime-high-resolution-logo-transparent.png" alt="" aria-hidden style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,#ff6f61,#4a90e2)"/>
         <h1>All.Anime — Leaderboard</h1>
       </div>
-      <div class="user-info" id="userInfo" style="display:none;gap:12px">
-        <div style="text-align:right">
-          <div style="font-weight:700;font-size:13px" id="userName">User</div>
-          <button id="logoutBtn" style="background:none;border:none;color:var(--brand);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">Sign out</button>
-        </div>
-      </div>
-      <a href="login.html" id="loginBtn" style="color:var(--brand);text-decoration:none;font-size:13px;display:none">Sign in</a>
+      <div id="userDisplay" style="font-weight:700;font-size:13px;color:var(--brand)"></div>
     </header>
 
     <!-- TOP BANNER AD (MultiTag) -->
@@ -169,36 +162,16 @@ class SupabaseClient {
   }
 }
 
-// Initialize auth
-function initAuth() {
-  const auth = new SupabaseAuth();
-  
-  // Handle OAuth callback
-  const authSuccess = auth.handleOAuthCallback();
-  if (authSuccess) {
-    // Clear the hash from URL
-    window.history.replaceState({}, document.title, window.location.pathname);
+// Load current user
+let currentUser = null;
+function loadUser() {
+  const userStr = localStorage.getItem('quiz_user');
+  if (userStr) {
+    currentUser = JSON.parse(userStr);
+    document.getElementById('userDisplay').textContent = `👤 ${currentUser.username}`;
   }
-  
-  // Update UI based on auth state
-  if (auth.isAuthenticated()) {
-    document.getElementById('userInfo').style.display = 'flex';
-    document.getElementById('loginBtn').style.display = 'none';
-    document.getElementById('userName').textContent = auth.getDisplayName();
-    
-    document.getElementById('logoutBtn').onclick = function() {
-      auth.logout();
-      window.location.reload();
-    };
-  } else {
-    document.getElementById('userInfo').style.display = 'none';
-    document.getElementById('loginBtn').style.display = 'block';
-  }
-
-  return auth;
 }
 
-const authClient = initAuth();
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_KEY);
 const genreSelect = document.getElementById('genreSelect');
 const diffSelect = document.getElementById('diffSelect');
@@ -222,8 +195,6 @@ async function loadLeaderboard() {
 
   resultCount.innerText = `Showing ${scores.length} score${scores.length !== 1 ? 's' : ''}`;
 
-  const currentUserId = authClient && authClient.isAuthenticated() ? authClient.getUserId() : null;
-
   leaderboardBody.innerHTML = scores.map((score, idx) => {
     const rank = idx + 1;
     let rankClass = 'rank';
@@ -235,7 +206,7 @@ async function loadLeaderboard() {
     else if (rank === 3) { rankClass += ' bronze'; rankDisplay = '🥉'; }
 
     // Highlight current user's score
-    if (currentUserId && score.user_id === currentUserId) {
+    if (currentUser && score.user_name === currentUser.username) {
       rowStyle = 'style="background:#f5f0ff;font-weight:700"';
     }
 
@@ -245,7 +216,7 @@ async function loadLeaderboard() {
     return `
       <tr ${rowStyle}>
         <td class="${rankClass}">${rankDisplay}</td>
-        <td>${playerName}${currentUserId && score.user_id === currentUserId ? ' (you)' : ''}</td>
+        <td>${playerName}${currentUser && score.user_name === currentUser.username ? ' (you)' : ''}</td>
         <td>${score.genre}</td>
         <td>${score.difficulty}</td>
         <td class="score-display">${score.score}/${score.total}</td>
@@ -258,6 +229,7 @@ async function loadLeaderboard() {
 filterBtn.onclick = loadLeaderboard;
 
 // Load on page load
+loadUser();
 window.addEventListener('DOMContentLoaded', loadLeaderboard);
 </script>
 </body>
