@@ -224,18 +224,12 @@ async function loadLeaderboard() {
     else if (rank === 2) { rankClass += ' silver'; rankDisplay = '🥈'; }
     else if (rank === 3) { rankClass += ' bronze'; rankDisplay = '🥉'; }
 
-    // Highlight current user's score
-    if (currentUser && score.user_name === currentUser.username) {
-      rowStyle = 'style="background:#f5f0ff;font-weight:700"';
-    }
-
     const date = new Date(score.created_at).toLocaleDateString();
-    const playerName = score.user_name || 'Anonymous';
     
     return `
       <tr ${rowStyle}>
         <td class="${rankClass}">${rankDisplay}</td>
-        <td>${playerName}${currentUser && score.user_name === currentUser.username ? ' (you)' : ''}</td>
+        <td>Anonymous</td>
         <td>${score.genre}</td>
         <td>${score.difficulty}</td>
         <td class="score-display">${score.score}/${score.total}</td>
