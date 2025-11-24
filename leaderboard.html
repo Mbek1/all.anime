@@ -218,18 +218,18 @@ async function loadLeaderboard() {
     const rank = idx + 1;
     let rankClass = 'rank';
     let rankDisplay = `#${rank}`;
-    let rowStyle = '';
     
     if (rank === 1) { rankClass += ' gold'; rankDisplay = '🥇'; }
     else if (rank === 2) { rankClass += ' silver'; rankDisplay = '🥈'; }
     else if (rank === 3) { rankClass += ' bronze'; rankDisplay = '🥉'; }
 
     const date = new Date(score.created_at).toLocaleDateString();
+    const playerName = score.user_name || 'Anonymous';
     
     return `
-      <tr ${rowStyle}>
+      <tr>
         <td class="${rankClass}">${rankDisplay}</td>
-        <td>Anonymous</td>
+        <td>${playerName}</td>
         <td>${score.genre}</td>
         <td>${score.difficulty}</td>
         <td class="score-display">${score.score}/${score.total}</td>
