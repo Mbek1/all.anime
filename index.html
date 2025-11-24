@@ -1069,14 +1069,16 @@ async function submitScore(genre, difficulty, score, total, shouldShare = false)
 function initAuth() {
   const auth = new SupabaseAuth();
   
-  // Handle OAuth callback
-  const authSuccess = auth.handleOAuthCallback();
-  if (authSuccess) {
-    // Clear the hash from URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
+  // Handle OAuth callback - this is async now
+  auth.handleOAuthCallback().then(authSuccess => {
+    if (authSuccess) {
+      console.log('OAuth successful, user authenticated');
+    }
+  }).catch(err => {
+    console.error('OAuth callback error:', err);
+  });
   
-  // Update UI based on auth state
+  // Update UI based on auth state (check current state)
   if (auth.isAuthenticated()) {
     document.getElementById('userInfo').style.display = 'flex';
     document.getElementById('loginBtn').style.display = 'none';
@@ -1103,15 +1105,17 @@ function closeSignInModal() {
 
 function signInWithGoogleModal() {
   const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
-  const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+  const redirectUri = encodeURIComponent(window.location.origin + '/index.html');
   const url = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${redirectUri}&skip_http_redirect=false`;
+  console.log('Redirecting to Google OAuth:', url);
   window.location.href = url;
 }
 
 function signInWithGitHubModal() {
   const SUPABASE_URL = 'https://ijsvnrzlzzqfvcvysbjp.supabase.co';
-  const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+  const redirectUri = encodeURIComponent(window.location.origin + '/index.html');
   const url = `${SUPABASE_URL}/auth/v1/authorize?provider=github&redirect_to=${redirectUri}&skip_http_redirect=false`;
+  console.log('Redirecting to GitHub OAuth:', url);
   window.location.href = url;
 }
 

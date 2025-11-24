@@ -71,10 +71,16 @@ class SupabaseAuth {
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
       // Fetch user info from Supabase
-      return this.fetchUserProfile(accessToken);
+      return this.fetchUserProfile(accessToken).then(success => {
+        if (success) {
+          // Clear hash from URL without reloading
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
+        return success;
+      });
     } catch (e) {
       console.error('OAuth callback error:', e);
-      return false;
+      return Promise.resolve(false);
     }
   }
 
