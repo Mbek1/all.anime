@@ -58,12 +58,12 @@ exports.handler = async function(event) {
     const token = generateToken(8);
     const user_name = username || 'Anonymous';
 
-    console.log('Inserting score:', { genre, difficulty, score, total, token, user_name });
+    console.log('Inserting score:', { genre, difficulty, score, total, token });
 
     // insert row
     const { data, error } = await supabase
       .from('scores')
-      .insert([{ genre, difficulty, score, total, token, user_id: null, user_name }])
+      .insert([{ genre, difficulty, score, total, token }])
       .select()
       .single();
 
